@@ -1,0 +1,47 @@
+@startuml
+title Smart Shopping - Component Model (Logical Architecture)
+left to right direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+package "Presentation" {
+  component "Web Frontend" as UI
+}
+package "Application API" {
+  component "REST API" as API
+  component "Catalog + Price Queries" as Price
+  component "Discount Analysis" as Discount
+  component "Recommendation Engine" as Recommend
+  component "Forecast Reader" as FReader
+}
+package "Background Processing" {
+  component "Price Importer" as Import
+  component "Carbon-Aware Scheduler" as Schedule
+  component "Forecast Worker\n(existing model / baseline)" as Forecast
+}
+package "Observability" {
+  component "Metrics / Logs" as Metrics
+}
+database "PostgreSQL\nproducts, price observations, forecasts, jobs" as DB
+cloud "Licensed Price Data / CSV" as Provider
+cloud "Simulated Carbon Signal" as Carbon
+UI --> API : HTTPS / JSON
+API --> Price
+API --> Discount
+API --> FReader
+API --> Recommend
+Price --> DB : read
+Discount --> DB : read
+FReader --> DB : read forecast
+Recommend --> Discount : price context
+Recommend --> FReader : latest forecast
+Import --> Provider : import
+Import --> DB : upsert prices
+Schedule --> Carbon : read intensity
+Schedule --> DB : due jobs / deadlines
+Schedule --> Forecast : run or defer
+Forecast --> DB : read prices / save forecast
+API ..> Metrics
+Import ..> Metrics
+Schedule ..> Metrics
+Forecast ..> Metrics
+@enduml

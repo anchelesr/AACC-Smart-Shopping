@@ -1,0 +1,42 @@
+@startuml
+title Smart Shopping - Conceptual Data Model (optional)
+skinparam shadowing false
+class Product {
+  productId: UUID
+  canonicalName: String
+  category: String
+}
+class Retailer {
+  retailerId: UUID
+  name: String
+}
+class PriceObservation {
+  observedAt: DateTime
+  amount: Decimal
+  currency: String
+  source: String
+}
+class PriceForecast {
+  forecastId: UUID
+  horizonDays: Integer
+  predictedAmount: Decimal
+  generatedAt: DateTime
+  modelVersion: String
+}
+class PredictionJob {
+  jobId: UUID
+  status: JobStatus
+  deadline: DateTime
+  lastDecision: String
+}
+class CarbonReading {
+  timestamp: DateTime
+  intensity_gCO2e_per_kWh: Decimal
+  source: String
+}
+Product "1" -- "0..*" PriceObservation
+Retailer "1" -- "0..*" PriceObservation
+Product "1" -- "0..*" PriceForecast
+Product "1" -- "0..*" PredictionJob
+PredictionJob ..> CarbonReading : considers
+@enduml

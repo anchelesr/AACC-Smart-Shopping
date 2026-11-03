@@ -1,0 +1,37 @@
+@startuml
+title ASUC-02/03 - Product Analysis and Recommendation
+skinparam shadowing false
+actor Shopper
+boundary "Web UI" as UI
+control "REST API" as API
+control "Product / Price Query" as Price
+control "Discount Analyzer" as Discount
+control "Forecast Repository" as Forecast
+control "Recommendation Engine" as Rec
+database "PostgreSQL" as DB
+Shopper -> UI : Select product / request recommendation
+UI -> API : GET /products/{id}/insights
+API -> Price : getProductAndPrices(id)
+Price -> DB : query offers and historical prices
+DB --> Price : price records + timestamps
+Price --> API : product + validated prices
+API -> Discount : analyze(prices)
+Discount --> API : discount evidence
+API -> Forecast : findLatest(id)
+Forecast -> DB : query stored forecast
+DB --> Forecast : forecast or none
+Forecast --> API : forecast + age + status
+alt forecast current enough
+  API -> Rec : recommend(prices, discount, forecast)
+  Rec --> API : buy / wait + reasons
+else unavailable or expired
+  API -> Rec : recommend(prices, discount, no forecast)
+  Rec --> API : rules-only advice or insufficient data
+end
+API --> UI : JSON insights + timestamps + caveats
+UI --> Shopper : Show price history and recommendation
+note over API,Forecast
+  Interactive API never blocks on a heavy batch forecast.
+  Background processing updates saved predictions.
+end note
+@enduml

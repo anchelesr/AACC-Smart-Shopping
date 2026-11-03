@@ -1,0 +1,44 @@
+@startuml
+title ASUC-04 - Carbon-Aware Forecast Refresh
+skinparam shadowing false
+actor "Scheduled Kubernetes CronJob" as Tick
+control "Forecast Batch Controller" as Controller
+control "Carbon Policy" as Policy
+participant "Carbon Signal Simulator" as Carbon
+participant "Prediction Worker" as Worker
+database "PostgreSQL" as DB
+participant "Metrics Collector" as Metrics
+Tick -> Controller : start scheduled execution
+Controller -> DB : find due / pending products
+DB --> Controller : candidates + last-forecast age
+Controller -> Carbon : read intensity and timestamp
+alt carbon signal available
+  Carbon --> Controller : intensity gCO2e/kWh
+else unavailable
+  Carbon --> Controller : missing / invalid
+end
+loop for each due product
+  Controller -> Policy : decide(intensity, age, deadline)
+  alt low intensity OR freshness deadline reached
+    Policy --> Controller : RUN (reason)
+    Controller -> Worker : forecast(product, history)
+    Worker -> DB : read historical prices
+    DB --> Worker : validated time series
+    alt sufficient data
+      Worker -> DB : save forecast + version + timestamp
+      Worker --> Controller : completed + energy estimate
+    else insufficient data / failure
+      Worker --> Controller : no forecast + diagnostic
+    end
+  else high intensity and deadline not reached
+    Policy --> Controller : DEFER (next eligible time)
+    Controller -> DB : persist deferred status / retry time
+  end
+  Controller -> Metrics : duration, result, intensity, estimated gCO2e
+end
+Controller --> Tick : batch summary
+note over Controller,Worker
+  Deadline always wins over optional carbon deferral;
+  last-known values are labelled with their age.
+end note
+@enduml

@@ -1,0 +1,38 @@
+@startuml
+title Smart Shopping - Proposed Kubernetes Deployment (not yet deployed)
+left to right direction
+skinparam shadowing false
+node "User Device" as Device {
+  artifact "Web Browser" as Browser
+}
+node "Kubernetes Cluster" as K8s {
+  node "Frontend Deployment" as FE { component "Web UI" as UI }
+  node "Frontend Service" as FES
+  node "API Deployment (replicas)" as BE { component "FastAPI + Business Modules" as API }
+  node "API Service" as BES
+  node "Price Import CronJob" as Importer
+  node "Forecast Batch CronJob" as Batch {
+    component "Carbon Policy + Forecast Worker" as Worker
+  }
+  database "PostgreSQL + PVC\n(StatefulSet for demo)" as DB
+  node "Prometheus / Grafana" as Metrics
+}
+cloud "CSV / Authorized Price Source" as Feed
+cloud "Simulated Carbon Intensity" as Carbon
+Browser --> FES : HTTPS via ingress
+FES --> UI
+UI --> BES : REST
+BES --> API
+API --> DB : cached results, price history
+Importer --> Feed : read
+Importer --> DB : upsert observations
+Worker --> Carbon : read simulated intensity
+Worker --> DB : due jobs / prices / forecast
+API ..> Metrics : instrument
+Worker ..> Metrics : instrument
+Importer ..> Metrics : instrument
+note bottom of Worker
+  CronJob checks hourly; high-intensity non-urgent
+  work is deferred, but max-age deadline forces run.
+end note
+@enduml
