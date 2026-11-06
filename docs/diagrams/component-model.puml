@@ -1,47 +1,45 @@
 @startuml
-title Smart Shopping - Component Model (Logical Architecture)
+title Smart Shopping - Logical Component Architecture
 left to right direction
 skinparam shadowing false
+skinparam backgroundColor white
 skinparam componentStyle rectangle
-package "Presentation" {
-  component "Web Frontend" as UI
+skinparam componentBackgroundColor #FFF4F4
+skinparam componentBorderColor #B52330
+skinparam componentFontColor #202025
+package "Web Presentation" {
+ component "React 18 SPA" as UI
 }
-package "Application API" {
-  component "REST API" as API
-  component "Catalog + Price Queries" as Price
-  component "Discount Analysis" as Discount
-  component "Recommendation Engine" as Recommend
-  component "Forecast Reader" as FReader
+package "Modular FastAPI Backend" {
+ component "REST / Pydantic Validation" as API
+ component "Catalog and Price Query" as Query
+ component "Discount Evidence" as Discount
+ component "Recommendation Rules" as Rec
 }
-package "Background Processing" {
-  component "Price Importer" as Import
-  component "Carbon-Aware Scheduler" as Schedule
-  component "Forecast Worker\n(existing model / baseline)" as Forecast
+package "Scheduled Processing" {
+ component "Idempotent Price Import" as Import
+ component "Carbon Policy Controller" as Policy
+ component "Forecast Adapter / Worker" as Forecast
 }
-package "Observability" {
-  component "Metrics / Logs" as Metrics
-}
-database "PostgreSQL\nproducts, price observations, forecasts, jobs" as DB
-cloud "Licensed Price Data / CSV" as Provider
-cloud "Simulated Carbon Signal" as Carbon
-UI --> API : HTTPS / JSON
-API --> Price
+database "PostgreSQL 16\nProducts, Retailers, Price Observations,\nForecast Runs, Job Logs" as DB
+cloud "Approved CSV / API" as Source
+cloud "Simulated Grid Carbon Signal" as Carbon
+component "Prometheus-compatible Metrics" as Metrics
+UI --> API : JSON over HTTPS
+API --> Query
 API --> Discount
-API --> FReader
-API --> Recommend
-Price --> DB : read
-Discount --> DB : read
-FReader --> DB : read forecast
-Recommend --> Discount : price context
-Recommend --> FReader : latest forecast
-Import --> Provider : import
-Import --> DB : upsert prices
-Schedule --> Carbon : read intensity
-Schedule --> DB : due jobs / deadlines
-Schedule --> Forecast : run or defer
-Forecast --> DB : read prices / save forecast
+API --> Rec
+Query --> DB : Price and forecast reads
+Discount --> Query
+Rec --> Query : Evidence and forecast status
+Import --> Source : Validated import
+Import --> DB : Idempotent upsert
+Policy --> Carbon : Read signal
+Policy --> DB : Due-by job state
+Policy --> Forecast : RUN / DEFER
+Forecast --> DB : Store versioned 7-day forecast
 API ..> Metrics
 Import ..> Metrics
-Schedule ..> Metrics
+Policy ..> Metrics
 Forecast ..> Metrics
 @enduml

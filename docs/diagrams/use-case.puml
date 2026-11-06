@@ -1,54 +1,34 @@
 @startuml
-' Smart Shopping - external actors, user goals, supporting automated use cases
 left to right direction
 skinparam shadowing false
-skinparam packageStyle rectangle
-skinparam usecase {
-  BackgroundColor #EDF5FA
-  BorderColor #225A76
-}
-title Smart Shopping - Use Case Diagram
-actor "Shopper" as Shopper
+skinparam backgroundColor white
+skinparam usecaseBackgroundColor #FFF5F5
+skinparam usecaseBorderColor #BE2432
+skinparam usecaseFontColor #202025
+title Smart Shopping - Overall Use Case Model
+actor Shopper
 actor "System Operator" as Operator
-actor "Scheduled Trigger" as Trigger
-actor "Price Data Source" as PriceSource
-actor "Carbon Signal Simulator" as CarbonSource
+actor "Kubernetes Scheduled Trigger" as Tick
+actor "Approved Price Source" as Source
+actor "Simulated Carbon Feed" as Carbon
 rectangle "Smart Shopping System" {
-  package "Shopping" {
-    usecase "Search Products" as UC_Search
-    usecase "Filter and Sort Results" as UC_Filter
-    usecase "View Product Details" as UC_Detail
-    usecase "Compare Retailer Offers" as UC_Compare
-    usecase "View Price History" as UC_History
-    usecase "Analyze Discounts" as UC_Discount
-    usecase "View Price Forecast" as UC_Forecast
-    usecase "Get Buy / Wait Recommendation" as UC_Recommend
-  }
-  package "Operations" {
-    usecase "Import Price Observations" as UC_Import
-    usecase "Refresh Forecasts" as UC_Refresh
-    usecase "Check Carbon Intensity" as UC_Carbon
-    usecase "Configure Scheduling Policy" as UC_Policy
-    usecase "View System and Carbon Metrics" as UC_Monitor
-  }
+  usecase "Search and Filter Laptops" as Search
+  usecase "Compare Offers / Price History" as Compare
+  usecase "View 7-Day Forecast" as Forecast
+  usecase "Get Explainable Advice" as Advice
+  usecase "Import Price Observations" as Import
+  usecase "Refresh Forecasts" as Refresh
+  usecase "Evaluate Carbon and Deadline" as Policy
+  usecase "Inspect Metrics" as Metrics
 }
-Shopper -- UC_Search
-Shopper -- UC_Filter
-Shopper -- UC_Detail
-Shopper -- UC_Compare
-Shopper -- UC_History
-Shopper -- UC_Discount
-Shopper -- UC_Forecast
-Shopper -- UC_Recommend
-Operator -- UC_Policy
-Operator -- UC_Monitor
-Trigger -- UC_Import
-Trigger -- UC_Refresh
-PriceSource -- UC_Import
-CarbonSource -- UC_Carbon
-UC_Refresh ..> UC_Carbon : <<include>>
-note bottom of UC_Refresh
-  Execute or defer non-urgent predictions;
-  deadline/freshness constraint overrides deferral.
-end note
+Shopper -- Search
+Shopper -- Compare
+Shopper -- Forecast
+Shopper -- Advice
+Tick -- Import
+Tick -- Refresh
+Source -- Import
+Carbon -- Policy
+Operator -- Metrics
+Refresh ..> Policy : <<include>>
 @enduml

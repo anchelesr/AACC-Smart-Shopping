@@ -1,37 +1,31 @@
 @startuml
-title ASUC-02/03 - Product Analysis and Recommendation
+title ASUC-02 / ASUC-03: Laptop Insights and Fail-Soft Recommendation
 skinparam shadowing false
+skinparam backgroundColor white
 actor Shopper
-boundary "Web UI" as UI
-control "REST API" as API
-control "Product / Price Query" as Price
-control "Discount Analyzer" as Discount
-control "Forecast Repository" as Forecast
-control "Recommendation Engine" as Rec
+boundary "React Web UI" as UI
+control "FastAPI Insights Endpoint" as API
 database "PostgreSQL" as DB
-Shopper -> UI : Select product / request recommendation
+control "Discount and Advice Rules" as Rule
+Shopper -> UI : Open laptop details
 UI -> API : GET /products/{id}/insights
-API -> Price : getProductAndPrices(id)
-Price -> DB : query offers and historical prices
-DB --> Price : price records + timestamps
-Price --> API : product + validated prices
-API -> Discount : analyze(prices)
-Discount --> API : discount evidence
-API -> Forecast : findLatest(id)
-Forecast -> DB : query stored forecast
-DB --> Forecast : forecast or none
-Forecast --> API : forecast + age + status
-alt forecast current enough
-  API -> Rec : recommend(prices, discount, forecast)
-  Rec --> API : buy / wait + reasons
-else unavailable or expired
-  API -> Rec : recommend(prices, discount, no forecast)
-  Rec --> API : rules-only advice or insufficient data
+par Current and historical prices
+  API -> DB : Read comparable offers and 30-day history
+  DB --> API : Valid observations, currencies, times
+else Pre-computed forecast
+  API -> DB : Read latest stored forecast / model version
+  DB --> API : Forecast or NULL, generated_at
 end
-API --> UI : JSON insights + timestamps + caveats
-UI --> Shopper : Show price history and recommendation
-note over API,Forecast
-  Interactive API never blocks on a heavy batch forecast.
-  Background processing updates saved predictions.
+API -> Rule : Evaluate reference delta, forecast age and trend
+alt Fresh forecast + sufficient evidence
+  Rule --> API : BUY NOW / WAIT / INSUFFICIENT EVIDENCE + reasons
+else Forecast stale or absent
+  Rule --> API : Rules-only caution or INSUFFICIENT EVIDENCE
+end
+API --> UI : JSON: present, past, future, recommendation, caveats
+UI --> Shopper : Display price chart and explicit uncertainty
+note over API,DB
+  No synchronous heavy model execution.
+  DB unavailable: dependency error without a separate cache.
 end note
 @enduml

@@ -1,0 +1,31 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam usecaseBackgroundColor #FFF5F5
+skinparam usecaseBorderColor #BE2432
+skinparam usecaseFontColor #202025
+title Smart Shopping - Operational Use Cases
+actor "System Operator" as Operator
+actor "Kubernetes Scheduled Trigger" as Tick
+actor "Approved Price Data Source" as Prices
+actor "Simulated Carbon Signal" as Carbon
+rectangle "Smart Shopping - Background Operations" {
+  usecase "Import and Validate Price Data" as Import
+  usecase "Refresh Stored Forecasts" as Refresh
+  usecase "Evaluate Carbon / Deadline Policy" as Policy
+  usecase "Configure Scheduling Policy" as Config
+  usecase "Inspect Performance and Carbon Metrics" as Metrics
+}
+Operator -- Config
+Operator -- Metrics
+Tick -- Import
+Tick -- Refresh
+Prices -- Import
+Carbon -- Policy
+Refresh ..> Policy : <<include>>
+note right of Refresh
+  Forecast computation is asynchronous.
+  Deadline overrides elective deferral.
+end note
+@enduml

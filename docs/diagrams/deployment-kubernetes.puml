@@ -1,38 +1,40 @@
 @startuml
-title Smart Shopping - Proposed Kubernetes Deployment (not yet deployed)
+title Smart Shopping - Proposed Kubernetes Deployment (Not Yet Running)
 left to right direction
 skinparam shadowing false
-node "User Device" as Device {
-  artifact "Web Browser" as Browser
+skinparam backgroundColor white
+node "Shopper Browser" as Browser
+node "Kubernetes Cluster / smart-shopping namespace" {
+ node "Ingress Controller\nTLS" as Ingress
+ node "Frontend Deployment\n2 proposed replicas" as Frontend
+ node "Frontend Service" as FES
+ node "API Deployment\n2-3 proposed replicas" as API
+ node "API Service" as APIS
+ node "Price Import CronJob\nconcurrencyPolicy: Forbid" as Import
+ node "Carbon-Aware Forecast CronJob\nconcurrencyPolicy: Forbid" as Forecast
+ database "PostgreSQL 16\nStatefulSet + PVC (demo)" as DB
+ node "Prometheus and Grafana\nPrivate metrics" as Monitor
+ node "ConfigMap + Kubernetes Secrets" as Config
 }
-node "Kubernetes Cluster" as K8s {
-  node "Frontend Deployment" as FE { component "Web UI" as UI }
-  node "Frontend Service" as FES
-  node "API Deployment (replicas)" as BE { component "FastAPI + Business Modules" as API }
-  node "API Service" as BES
-  node "Price Import CronJob" as Importer
-  node "Forecast Batch CronJob" as Batch {
-    component "Carbon Policy + Forecast Worker" as Worker
-  }
-  database "PostgreSQL + PVC\n(StatefulSet for demo)" as DB
-  node "Prometheus / Grafana" as Metrics
-}
-cloud "CSV / Authorized Price Source" as Feed
-cloud "Simulated Carbon Intensity" as Carbon
-Browser --> FES : HTTPS via ingress
-FES --> UI
-UI --> BES : REST
-BES --> API
-API --> DB : cached results, price history
-Importer --> Feed : read
-Importer --> DB : upsert observations
-Worker --> Carbon : read simulated intensity
-Worker --> DB : due jobs / prices / forecast
-API ..> Metrics : instrument
-Worker ..> Metrics : instrument
-Importer ..> Metrics : instrument
-note bottom of Worker
-  CronJob checks hourly; high-intensity non-urgent
-  work is deferred, but max-age deadline forces run.
+cloud "Approved CSV / API" as Provider
+cloud "Simulated Grid Signal" as Signal
+Browser --> Ingress : HTTPS
+Ingress --> FES
+FES --> Frontend
+Frontend --> APIS : JSON API
+APIS --> API
+API --> DB : Price and forecast queries
+Import --> Provider : Read prices
+Import --> DB : Validated upsert
+Forecast --> Signal : Read intensity
+Forecast --> DB : Due jobs and forecasts
+API ..> Monitor
+Import ..> Monitor
+Forecast ..> Monitor
+Config ..> API
+Config ..> Forecast
+note right of Forecast
+  24h deadline override is enforced by persisted state.
+  CronJob scheduling alone is not a carbon policy.
 end note
 @enduml

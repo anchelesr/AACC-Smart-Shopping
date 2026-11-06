@@ -1,55 +1,71 @@
-# Project specification - Smart Shopping
+# Smart Shopping - Project specification
 
-## 1. Identity and objective
-Smart Shopping: Price Analysis, Discount Prediction & Carbon-Aware Recommendations.
-Repository URL: **https://github.com/anchelesr/AACC-Smart-Shopping**
-This is a **proposed system**, not an assertion that the code, datasets or cloud resources already exist.
+**Course:** AI Architecture and Cloud Computing (AACC)  
+**Repository:** https://github.com/anchelesr/AACC-Smart-Shopping  
+**Status:** Proposed architecture, Assignment 1 (no claim of working implementation)
 
-The system helps a shopper compare product offers, understand price history, assess whether a discount is exceptional, and view an evidence-based buy-now / wait recommendation. Non-urgent forecasting runs are scheduled in response to a **simulated grid-carbon-intensity signal**, subject to a freshness deadline.
+## 1. Project goal
 
-## 2. Stakeholders and boundaries
-Primary: Shopper. Secondary: System Operator (sets policy and inspects metrics), data provider (CSV/approved API), simulated carbon-signal provider, course evaluator. A scheduled event triggers non-interactive jobs. No checkout, payments, inventory reservation, delivery footprint, or real claims about retailer trustworthiness are included.
+The Smart Shopping MVP helps shoppers compare a fixed catalog of **laptop models** across multiple retailers by combining historical observations (*Past*), observed current offers (*Present*) and stored, pre-computed seven-day forecasts (*Future*). A transparent policy provides **Buy Now**, **Wait**, or **Insufficient Evidence** recommendations. Non-urgent forecast refreshes are governed by simulated electricity carbon intensity while maintaining freshness targets.
 
-## 3. MVP features
-| ID | Functional requirement | Acceptance idea |
-|---|---|---|
-| FR-01 | Search the product catalog | Search finds indexed item by name or category |
-| FR-02 | Filter and sort product search results | Price range and sort order affect displayed results |
-| FR-03 | Show product details and compare offers from multiple retailers | Amount, currency, retailer and observation time present |
-| FR-04 | Show a time-series chart of historical observed prices | Chart displays time, amount and price source |
-| FR-05 | Calculate discount evidence from historical prices | Shows delta from 30-day reference; missing history is explicit |
-| FR-06 | Present a stored seven-day price forecast when credible data is available | Includes model/version, time generated, uncertainty or caveat |
-| FR-07 | Explain a buy-now / wait recommendation | Reasons use prices, discount evidence and available forecast |
-| FR-08 | Import validated price observations at scheduled intervals | Deduplication and source provenance recorded |
-| FR-09 | Apply carbon-aware policy to nonurgent forecast refreshes | Low intensity executes; high defers; due deadline overrides |
-| FR-10 | Expose operational and sustainability metrics | Jobs run/deferred, latency, forecast age, energy and gCO2e estimate |
+## 2. System boundary and stakeholders
 
-Out of MVP: authenticated accounts, shopping checkout, retailer reviews/quality scoring, push/email alerts, real-time scraping, personalized ranking, shipping or embodied-product footprint. These can be future extensions.
+**Shopper:** searches, filters, examines laptop prices and evidence, reads recommendation.  
+**System operator:** configures carbon policy, inspects batch results and metrics.  
+**Scheduled trigger:** starts price-import and forecast-refresh workflows.  
+**Price data provider:** approved API or CSV import, possibly explicitly synthetic for demonstration.  
+**Simulated carbon feed:** provides gCO2e/kWh observations.  
+**Course evaluator:** reviews design, executable proof and measured comparisons.
 
-## 4. Nonfunctional properties - **proposed test targets**
-| ID | Quality | Proposed acceptance target |
-|---|---|---|
-| NFR-01 | API responsiveness | p95 GET product insights <= 2 s, tested at 20 requests/second with seeded demo data |
-| NFR-02 | Forecast freshness | 95% of eligible catalog products have a forecast <= 24 h old during demo workload; show age or unavailability for exceptions |
-| NFR-03 | Carbon policy | When signal > 300 gCO2e/kWh defer jobs without a deadline conflict; never violate 24 h maximum job age in the controlled experiment |
-| NFR-04 | Availability and fallback | Failed forecast/signal must not prevent browsing current/historical prices; user sees status |
-| NFR-05 | Data integrity | Every observation retains product ID, retailer ID, timestamp, currency, source; invalid/duplicate rows are logged/filtered |
-| NFR-06 | Security | HTTPS externally; no credentials in Git; least-privilege app and DB credentials; no payment data |
-| NFR-07 | Maintainability | Model adapter can be changed without modifying REST endpoint or recommendation policy |
-| NFR-08 | Operability | Prometheus-compatible metrics for HTTP, job states, forecast freshness, estimated carbon; structured logs |
-| NFR-09 | Scalability | Stateless API replicated independently from scheduled workers under Kubernetes |
-| NFR-10 | Sustainability evidence | Benchmark energy (kWh), estimated gCO2e/forecast, defer rate and SLO violations against an immediate-run baseline |
+### MVP boundary
 
-Targets above are **design proposals for later testing**, not proven results. 300 gCO2e/kWh, 24 h, 7 days and 20 RPS are configurable demonstration parameters.
+Ten or more demonstration laptop models, at least three sample retailers and 30+ days of timestamped price history per relevant case are proposed as a **test fixture**, not real-life retailer coverage. Brand, model and price filtering are in scope; sophisticated specification facets are not. No accounts, checkout, payment processing, price-alert push/email, merchant trust ranking, unauthorised live scraping or product manufacturing/shipping carbon footprint are included.
 
-## 5. Data and AI assumptions
-- Focus on a small, fixed electronics catalog for a reproducible student demonstration.
-- Data input: authorized provider or CSV with historical price observations; synthetic data labeled as synthetic.
-- Normalization includes timestamps, currency policy, retailer-product linkage, duplicate removal, invalid values, missing-history handling.
-- Forecasts generated **off the request path**, persisted with model/version, creation time, target date, and a quality/status flag.
-- Do **not** train/fine-tune a custom model (Course Overview ground rule). Choose an existing forecasting implementation or simple non-trained rule-based baseline; demonstrate model interface design, not model training.
-- Discount evidence is a comparison to historical reference, not a legally verified seller promotion. Negative advice is explained as an estimate, not certainty.
-- Carbon intensity is simulated in gCO2e/kWh, and carbon-estimates concern the **compute workload**, not manufacturing/shipping emissions.
+## 3. Functional requirements
 
-## 6. Key quality trade-off
-The interactive path returns stored insights immediately; the batch path sacrifices some freshness when carbon intensity is elevated. Enforce the 24-hour freshness deadline before allowing deferral. Actual savings are hypothetical until measured.
+| ID | Requirement | Acceptance criterion |
+| --- | --- | --- |
+| FR-01 | Search laptop catalog | Query by product name, brand or model; return matching catalog items. |
+| FR-02 | Filter and sort | Filter by price boundaries; sort by price ascending or descending. |
+| FR-03 | Compare retailer offers | Show each observed active retailer offer, currency and observed-at timestamp. |
+| FR-04 | View historical prices | Plot at least 30 days of sourced observations, where test data supports it. |
+| FR-05 | Evaluate discount evidence | Compare current price with a clearly defined 30-day reference; declare insufficient observations when applicable. |
+| FR-06 | View seven-day forecast | Read a **stored** forecast; show model identifier, generated-at time, forecast horizon, uncertainty caveat and freshness state. |
+| FR-07 | Obtain explainable advice | Explain Buy Now / Wait; return Insufficient Evidence if the inputs cannot justify either. No guarantees of future prices. |
+| FR-08 | Import price observations | Scheduled worker validates, normalizes and idempotently upserts observations with source information. |
+| FR-09 | Apply carbon-aware scheduling | With a 300 gCO2e/kWh **proposed** threshold, defer only non-urgent forecasts; force deadlines at 24h, with a missing-signal fallback. |
+| FR-10 | Publish operational/carbon metrics | Export request latency, job states, forecast age, energy-estimate methodology and estimated gCO2e. |
+
+### Price and recommendation semantics
+
+For the MVP, one possible explicit 30-day product reference is the **median of daily lowest valid offers** for a matching product over the last 30 days. The current discount-evidence delta is `(current_lowest_price / reference_price - 1) * 100%`. This is a design policy to validate during implementation, **not** a claim that the seller advertised a legally compliant discount. The comparison only proceeds if sufficient observations exist and currencies are comparable. Recommendation rules combine this delta and the direction of the stored seven-day forecast; results carry short, evidence-based explanations. When a forecast is missing/stale, use rule-only information with a conspicuous caveat or return Insufficient Evidence.
+
+## 4. Non-functional properties - proposed targets
+
+| ID | Quality attribute | Proposed acceptance target |
+| --- | --- | --- |
+| NFR-01 | Performance | `GET /products/{id}/insights` p95 latency <= 2.0 s under 20 requests/s on seeded demo data. |
+| NFR-02 | Freshness | >=95% of active eligible catalog laptops have a forecast no older than 24h in the target scenario; flag exceptions. |
+| NFR-03 | Carbon job deadline | No controlled-test prediction job is intentionally deferred beyond its specified 24h maximum interval; enforce override. |
+| NFR-04 | Fault tolerance | A forecast worker/model/signal outage does not prevent viewing stored current and past prices. Database outages require a separately provisioned read cache/snapshot; **not guaranteed** by the database-only MVP. |
+| NFR-05 | Data integrity | Reject invalid rows; enforce unique source observations (product, retailer, timestamp, provenance) and idempotent retry. |
+| NFR-06 | Security | TLS at edge; no plaintext secrets in repository; least-privilege DB and K8s access. |
+| NFR-07 | Modifiability | Swap forecasting adapter without changing the shopper REST contract or recommendation policy. |
+| NFR-08 | Observability | Request latency, forecast age, job outcome and estimated kWh/gCO2e visible in monitoring. |
+| NFR-09 | Scaling | API replicas independent of scheduled batch workers; defined resource requests and limits. |
+| NFR-10 | Sustainability evidence | Controlled immediate-run vs carbon-aware experiment records energy, gCO2e, deferrals, forecast age and deadline errors. |
+
+These values are **design acceptance targets**, not tested achievements. Carbon threshold and maximum age are configurable. A freshness target for 95% is not equivalent to proof of zero errors in a real production service.
+
+## 5. Data and AI constraints
+
+- Price observations contain product, retailer, amount, currency, observation time and source provenance.
+- The system reads pre-computed forecasts; the interactive HTTP request never launches an expensive forecast calculation.
+- The forecasting interface wraps an existing ready-to-use model/baseline; **no custom training or fine-tuning** is part of this course MVP.
+- Input quantities, currencies and timezones must be normalized; currency conversion is not silently applied to incomparable offers.
+- Forecasts are estimates with timestamp and limitations, not guaranteed purchasing advice.
+- Operational gCO2e estimation concerns the server-side **compute workload**, not the environmental impact of producing or shipping laptops.
+
+## 6. Architecture drivers and assumptions
+
+The primary architectural tension is fast, predictable shopper-facing reads versus deferrable energy-consuming batch computations. The design therefore isolates a read-mostly API from ingestion/forecast CronJobs, persists results in PostgreSQL and uses carbon-aware time-shifting only while freshness constraints can still be met. Deployments, API contracts, decision records and test plans are defined in the rest of `docs/`.

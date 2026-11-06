@@ -1,57 +1,45 @@
-# Architecture overview
+# Smart Shopping - Architecture overview
 
-## Views
-- `use-case.puml`: external use cases and stakeholders (not a workflow or deployment map).
-- `sequence-shopping.puml`: shopper-facing analysis and recommendation; stored forecast vs missing/stale.
-- `sequence-carbon-aware.puml`: asynchronous scheduled refresh, carbon policy, freshness deadline.
-- `component-model.puml`: logical modules and their dependencies.
-- `deployment-kubernetes.puml`: proposed container and Kubernetes resource mapping.
-- `class-model.puml`: optional conceptual storage/data classes.
+## Architecture objectives
 
-## Design principle
-One responsibility per component; keep forecasting adapter separate from discount/recommendation business logic, reflecting course SE4AI architectural-quality material (SRP, cohesion, separation of concerns). Choose a modular API plus an independently deployable batch worker; do not introduce unnecessary microservices for a small demo.
+The proposed MVP covers only laptops. It preserves a quick shopper experience while handling slower price imports and CPU-intensive forecast refreshes in background jobs. The read path and background path do not share request-time compute. Scheduled work may adapt to a simulated carbon-intensity signal, subject to a strict *attempt-to-execute-by-deadline* policy and measurable freshness SLOs.
 
-## Logical building blocks
-| Component | Responsibility | Interface / state |
-|---|---|---|
-| Web UI | Search, compare, history chart, recommendation | REST; no DB credentials |
-| REST API | Product endpoints, validate requests, orchestrate modules | stateless HTTP JSON |
-| Catalog/Price Queries | Retrieve observed latest/history per product and retailer | SQL read |
-| Discount Analyzer | Compare observed current and historical reference | deterministic Python function |
-| Forecast Reader | Fetch latest stored precomputed forecast and age | SQL read |
-| Recommendation Engine | buy / wait / insufficient evidence and explanations | pure business logic |
-| Price Import CronJob | Ingest source and normalize data | CSV/approved API, upsert SQL |
-| Forecast Batch CronJob | Read due work; carbon policy; invoke prediction adapter | scheduled SQL + simulated signal |
-| Forecast Adapter | existing model/baseline inference, no training | input time series -> forecast + metadata |
-| PostgreSQL | catalog, retailers, observations, forecasts, job state | persistent; schema migrations |
-| Metrics stack | Collect API/job/energy/carbon/status metrics | Prometheus and dashboard |
+## Logical modules
 
-## Proposed API contract (illustrative, not implemented)
-- `GET /products?q=...&sort=price_asc`: product search.
-- `GET /products/{id}/insights`: offers, price history, discount evidence, latest stored forecast, recommendation, timestamps/status.
-- `GET /health`: liveness; internal readiness checks.
-- `GET /metrics`: monitoring endpoint; restrict operational exposure.
+- **React SPA:** laptop search, retailer price comparison, history, stored predictions and explained advice.
+- **FastAPI API:** request validation, catalog/price queries, discount evidence and recommendation response.
+- **Discount Analyzer:** derives a product's reference-price delta from valid comparable historical observations.
+- **Recommendation Policy:** separates deterministic advice from the forecasting adapter; returns `INSUFFICIENT_EVIDENCE` when required evidence is weak.
+- **Price Import CronJob:** CSV/approved API validation, provenance preservation and PostgreSQL upsert.
+- **Carbon-Aware Forecast CronJob:** persists due jobs, uses intensity signal, checks deadline override, runs an existing forecast adapter and records executions/energy.
+- **PostgreSQL:** products, retailers, price observations, forecast runs and job logs.
+- **Observability:** planned Prometheus/Grafana, request/job/carbon metrics and logging.
 
-## Data pipeline and reliability
-1. Scheduled CSV/authorized API importer validates and upserts price observations with uniqueness by product/retailer/observation time/source.
-2. Catalog/price queries use normalized observations; confidence depends on history availability.
-3. Forecasting jobs operate asynchronously and write versioned forecasts; API reads existing values without synchronous heavy compute.
-4. Policy on signal: intensity <= configured threshold -> run, high -> defer only if deadline allows; absent signal -> documented fallback (run deadline-critical, log reason).
-5. Each run records job ID/status; duplicate CronJob execution may occur and is handled with unique work claims / idempotency. ConcurrencyPolicy: Forbid is proposed but DB idempotency is still needed.
+## Runtime flows
 
-## Kubernetes mapping (planned, not deployed)
-- `frontend` Deployment + ClusterIP Service, exposed via Ingress.
-- `api` Deployment + ClusterIP Service; replicas are stateless.
-- `price-import` CronJob.
-- `forecast-batch` CronJob (runs policy and forecasting in same short-lived worker initially); `concurrencyPolicy: Forbid`, with `resources.requests/limits`.
-- PostgreSQL StatefulSet + PVC for demo; production would prefer managed Postgres with backups.
-- Prometheus/Grafana or lightweight equivalent for metrics.
-- ConfigMap: policy thresholds / simulator profile; Secret: DB credentials; readiness/liveness and resource budgets.
+1. **Interactive insights:** Shopper -> React -> FastAPI -> PostgreSQL observations and latest forecast -> Discount/Recommendation -> JSON with provenance/staleness -> UI. Missing forecasts do not trigger costly synchronous inference.
+2. **Ingestion:** CronJob -> approved CSV/data source -> validate -> unique-key upsert -> metrics.
+3. **Carbon-aware refresh:** CronJob -> job claim and intensity/deadline evaluation -> execute or defer -> existing forecast adapter -> forecast and job log -> metrics.
 
-**Why not cloud/local boundary in Use Case UML?** A UML use case describes actors/goals. Runtime placement is specified by the deployment view.
+## Views and editable UML
 
-## Carbon measurement and experiment
-- Carbon signal: deliberately simulated time series in gCO2e/kWh, not a real-time claim.
-- Energy estimate: capture measured/estimated workload kWh and derive operational emissions `gCO2e = kWh * gCO2e/kWh` with recorded methodology. CodeCarbon may help estimate energy; intensity is applied consistently to both experiment arms.
-- A/B experiment: same workload with immediate-run policy vs carbon-aware deferral, record actual job completion time, forecast age, p95 response latency, energy per forecast, estimated gCO2e/forecast, and deadline/SLO violations.
-- Distinguish reduced carbon intensity from reduced **energy**; deferment alone does not guarantee lower energy use or absolute emissions.
+- [Shopper use-case diagram](diagrams/use-case-shopper.puml) and [operational use-case diagram](diagrams/use-case-operations.puml).
+- [Shopper sequence](diagrams/sequence-shopping.puml) and [carbon-aware sequence](diagrams/sequence-carbon-aware.puml).
+- [Logical component model](diagrams/component-model.puml).
+- [Kubernetes deployment](diagrams/deployment-kubernetes.puml).
+- [Optional data class model](diagrams/class-model.puml) and [carbon policy activity](diagrams/carbon-policy-activity.puml).
+
+## Architectural boundaries
+
+A Use Case Diagram models actors and goals, not physical placement. The Component Diagram models application responsibilities. The Deployment Diagram specifies the proposed Kubernetes Deployments, Services, CronJobs and database storage. All diagrams are proposals, not infrastructure evidence.
+
+## Key refinements from the architecture review
+
+- Narrow the catalog to laptops; only simple brand/model/price filters in the MVP.
+- Remove merchant trustworthiness scores and price alert subscriptions; neither is supportable without new sources/accounts.
+- Keep 7-day predictions **pre-computed** and freshness-labelled.
+- Use deterministic, transparent buy/wait/insufficient-evidence advice instead of unqualified AI certainty.
+- Preserve a durable 24-hour forecast job deadline and avoid misrepresenting high-carbon deferral as guaranteed emissions savings.
+- Add explicit PostgreSQL schema, REST API contract, resource guards and a baseline sustainability experiment.
+
+Full API schema: [Data Model and API](data-model-api.md). Kubernetes/policy details: [Kubernetes Design](kubernetes-design.md).

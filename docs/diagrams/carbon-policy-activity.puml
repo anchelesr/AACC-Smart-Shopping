@@ -1,0 +1,25 @@
+@startuml
+title Carbon-Aware Forecast Job - Decision Policy
+skinparam shadowing false
+skinparam backgroundColor white
+start
+:Claim pending job idempotently;
+:Read last forecast age and persisted deadline;
+if (Deadline reached?) then (yes)
+  :EXECUTE (forced attempt);
+else (no)
+  :Read simulated intensity;
+  if (Signal available?) then (yes)
+    if (Intensity <= 300 gCO2e/kWh?) then (yes)
+      :EXECUTE (low-carbon window);
+    else (no)
+      :DEFER and record next evaluation before deadline;
+    endif
+  else (no)
+    :Record signal error;
+    :Fail-safe retry without passing deadline;
+  endif
+endif
+:Persist job outcome and telemetry;
+stop
+@enduml

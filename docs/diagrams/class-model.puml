@@ -1,42 +1,51 @@
 @startuml
-title Smart Shopping - Conceptual Data Model (optional)
+title Smart Shopping - Conceptual Relational Data Model
 skinparam shadowing false
+skinparam backgroundColor white
 class Product {
-  productId: UUID
-  canonicalName: String
-  category: String
+  id: PK
+  sku: UNIQUE
+  brand: String
+  model: String
+  specifications: JSONB
 }
 class Retailer {
-  retailerId: UUID
-  name: String
+  id: PK
+  name: UNIQUE
+  defaultCurrency: String
 }
 class PriceObservation {
-  observedAt: DateTime
+  id: PK
+  productId: FK
+  retailerId: FK
   amount: Decimal
   currency: String
-  source: String
+  observedAt: UTC
+  sourceProvenance: String
 }
-class PriceForecast {
-  forecastId: UUID
-  horizonDays: Integer
-  predictedAmount: Decimal
-  generatedAt: DateTime
+class ForecastRun {
+  id: PK
+  productId: FK
+  forecast7Days: JSONB
   modelVersion: String
+  generatedAt: UTC
+  status: String
 }
-class PredictionJob {
-  jobId: UUID
-  status: JobStatus
-  deadline: DateTime
-  lastDecision: String
-}
-class CarbonReading {
-  timestamp: DateTime
-  intensity_gCO2e_per_kWh: Decimal
-  source: String
+class JobExecutionLog {
+  id: PK
+  jobKey: UNIQUE
+  deadlineAt: UTC
+  status: String
+  gridIntensity: Decimal
+  energyKWh: Decimal
+  estimatedGCO2e: Decimal
 }
 Product "1" -- "0..*" PriceObservation
 Retailer "1" -- "0..*" PriceObservation
-Product "1" -- "0..*" PriceForecast
-Product "1" -- "0..*" PredictionJob
-PredictionJob ..> CarbonReading : considers
+Product "1" -- "0..*" ForecastRun
+Product "1" -- "0..*" JobExecutionLog
+note right of PriceObservation
+ UNIQUE(productId, retailerId,
+ observedAt, sourceProvenance)
+end note
 @enduml
