@@ -1,134 +1,92 @@
 # Smart Shopping
 
 **Price Analysis, Discount Prediction & Carbon-Aware Recommendations**  
-**AACC - AI Architecture and Cloud Computing | Assignment 1: Architecture**
+*AI Architecture and Cloud Computing (AACC)*
 
-**Repository:** https://github.com/anchelesr/AACC-Smart-Shopping  
-**Status:** Architecture proposal. The functions, performance targets and Kubernetes deployment described below are planned, not yet verified as implemented.
+**Authors:** Linda Vincelová · Angelika Rischáneková  
+**Repository:** https://github.com/anchelesr/AACC-Smart-Shopping
 
-## Overview
+## What we are building
 
-Smart Shopping is a proposed web application for comparing **laptop** prices and making better-informed buying decisions. It brings together three perspectives:
+Buying a laptop involves more than finding the lowest advertised price. The same model may appear in several shops, the price can change from week to week, and a large percentage discount does not necessarily mean that an offer is unusually good. Our project brings those pieces of information together in one place.
 
-- **Past:** 30+ days of observed prices and an evidence-based discount comparison.
-- **Present:** current offers from multiple retailers, with timestamps and currencies.
-- **Future:** a stored seven-day price forecast and an explainable **Buy Now / Wait / Insufficient Evidence** recommendation.
+Smart Shopping is designed around three views of a laptop's price:
 
-A second project goal is **carbon-aware cloud operation**: non-urgent forecasting jobs may be deferred during periods of higher *simulated* electricity carbon intensity, but not beyond their freshness deadline.
+- **Past:** a dated price history and a clearly defined 30-day reference price;
+- **Present:** comparable offers from different retailers, with their source and observation time;
+- **Future:** a stored seven-day price forecast, including its age and limitations.
 
-## Scope and Features
+The application then gives a short **Buy Now**, **Wait** or **Insufficient Evidence** recommendation. We want that recommendation to be understandable: a shopper should be able to see which price observations and assumptions led to it.
 
-| Feature | Intended behavior |
-| --- | --- |
-| Laptop search | Search a small, indexed laptop catalog by name, brand or model. |
-| Filtering and sorting | Filter by price and sort offers or results by price. |
-| Retailer comparison | Display current observed prices, retailer, currency and collection time. |
-| Price history | Show 30+ days of price observations and historical reference values. |
-| Discount evidence | Compare current offers with a defined 30-day reference price; do not assert a retailer's official promotion. |
-| Seven-day forecast | Display a pre-computed forecast with age, model identifier and limitations. |
-| Shopping advice | Explain **Buy Now**, **Wait** or **Insufficient Evidence**, using available evidence. |
-| Carbon-aware batch jobs | Read a simulated grid-intensity signal, execute or defer scheduled forecasts within deadline constraints. |
-| Operations | Record service latency, job status, forecast age, estimated energy and estimated operational CO2e. |
+A second part of the project concerns the infrastructure. Instead of recalculating forecasts whenever someone opens a product page, we plan to run them as background jobs. These jobs can be shifted to periods of lower *simulated* electricity carbon intensity, provided the forecast freshness limit is not exceeded.
 
-**Outside the MVP:** user accounts, purchase checkout, payments, live web scraping, inventory reservation, retailer trust scores, email/push price alerts and physical-product lifecycle emissions. These may be future extensions, not current deliverables.
+**Project status:** The architecture and documentation are prepared. The application, Kubernetes deployment and performance/carbon measurements still need to be implemented and tested.
 
-## Architecture
+## Scope of the first version
 
-The system separates fast interactive requests from asynchronous price ingestion and forecast computation. A React frontend communicates with a modular FastAPI backend. PostgreSQL stores products, retailers, price observations, forecasts and job execution history. Kubernetes CronJobs run import and forecasting workloads; a carbon-aware policy determines whether a forecast should execute now or be deferred.
+We are deliberately keeping the demonstration small: laptops only, a fixed catalog of at least ten comparable models, three sample retailers and approximately 30 days of price observations. The dataset may contain clearly identified demonstration data. Searches will focus on brand, model and price; we are not building a full e-commerce platform.
 
-| Component | Role |
-| --- | --- |
-| React frontend | Search, charts, comparisons and recommendations |
-| FastAPI service | Product API, validation, price queries, discount analysis and recommendation rules |
-| Price import job | Validated, idempotent import from approved/CSV sources |
-| Forecast batch job | Produces and stores forecasts using a replaceable, existing model/baseline adapter |
-| Carbon policy | Applies simulated gCO2e/kWh and a maximum forecast-age deadline |
-| PostgreSQL | Durable catalog, historical prices, forecasts and execution logs |
-| Prometheus / Grafana | Planned operational and sustainability monitoring |
+User accounts, payments, email alerts, retailer trust scores and unauthorized scraping are **outside** this first version. The carbon estimate covers the application's computations, not laptop manufacturing or shipping.
 
-See [Architecture](docs/architecture.md), [Data Model and API](docs/data-model-api.md) and [Kubernetes Design](docs/kubernetes-design.md).
+## Architecture at a glance
 
-## UML Diagrams
+We propose a React interface and a modular Python/FastAPI backend. PostgreSQL stores prices, the latest forecast results and background-job status. Scheduled jobs handle price imports and forecast refreshes. The interactive API only reads stored forecasts, so an expensive calculation does not block a shopper's request.
 
-The following images are previews. Editable **PlantUML source files** are supplied beside them.
+In Kubernetes, the frontend and API are planned as separate Deployments; import and forecasting work as CronJobs/Jobs. Prometheus and Grafana will be used to check response times, job outcomes, forecast age and estimated operational emissions.
 
-### Shopper use cases
+### Use cases
 
-![Shopper use cases](docs/diagrams/previews/use-case-shopper.png)
+The shopper-facing part covers searching laptops, comparing retailer offers, checking price history and requesting advice. A separate operational view covers data import, forecast refresh and monitoring.
 
-[PlantUML source](docs/diagrams/use-case-shopper.puml)
+![Shopper use-case diagram](docs/diagrams/previews/use-case-shopper.png)
 
-### Operational use cases
+[Shopper use-case PlantUML](docs/diagrams/use-case-shopper.puml) · [Operational use cases](docs/diagrams/use-case-operations.puml)
 
-![Operational use cases](docs/diagrams/previews/use-case-operations.png)
+### Main request sequence
 
-[PlantUML source](docs/diagrams/use-case-operations.puml)
-
-### Shopping insights sequence
+A shopper opens a laptop; the API reads the observations and latest forecast, calculates discount evidence and returns an explained recommendation. If the forecast is missing or too old, the response shows a clear warning rather than pretending the prediction is fresh.
 
 ![Shopping insights sequence](docs/diagrams/previews/sequence-shopping.png)
 
-[PlantUML source](docs/diagrams/sequence-shopping.puml)
+[Sequence source](docs/diagrams/sequence-shopping.puml)
 
-### Carbon-aware scheduling sequence
+### Component structure
 
-![Carbon-aware scheduling sequence](docs/diagrams/previews/sequence-carbon-aware.png)
+![Component diagram](docs/diagrams/previews/component-model.png)
 
-[PlantUML source](docs/diagrams/sequence-carbon-aware.puml)
+[Component source](docs/diagrams/component-model.puml)
 
-### Logical component model
+### Carbon-aware processing and Kubernetes
 
-![Component model](docs/diagrams/previews/component-model.png)
+Our draft policy uses a **300 gCO₂e/kWh** simulated intensity threshold and a **24-hour** maximum deferral window. These are demonstration settings, not established universal thresholds. A deadline override starts the job even when the intensity remains high; this is an attempt to preserve freshness, not a guarantee that the job will succeed. Any claim of lower emissions must be checked against the same workload run without deferral.
 
-[PlantUML source](docs/diagrams/component-model.puml)
+![Carbon-aware forecast sequence](docs/diagrams/previews/sequence-carbon-aware.png)
 
-### Proposed Kubernetes deployment
+[Sequence source](docs/diagrams/sequence-carbon-aware.puml)
 
-![Kubernetes deployment](docs/diagrams/previews/deployment-kubernetes.png)
+![Proposed Kubernetes deployment](docs/diagrams/previews/deployment-kubernetes.png)
 
-[PlantUML source](docs/diagrams/deployment-kubernetes.puml)
+[Deployment source](docs/diagrams/deployment-kubernetes.puml)
 
-The [Class Model](docs/diagrams/class-model.puml) and [Carbon Policy Activity Diagram](docs/diagrams/carbon-policy-activity.puml) are also supplied.
+Other diagrams: [combined use-case model](docs/diagrams/use-case.puml), [data model](docs/diagrams/class-model.puml) and [carbon policy activity](docs/diagrams/carbon-policy-activity.puml).
 
-## Significant Use Cases
+## Main design choices
 
-| ID | Scenario | Why it matters architecturally |
+| Area | Our approach | Why it matters |
 | --- | --- | --- |
-| ASUC-01 | Import and validate price observations | Data provenance, unique records and repeatable jobs |
-| ASUC-02 | View laptop offers, history and forecast | Interactive latency, stored forecasts and graceful fallback |
-| ASUC-03 | Generate explainable buy/wait advice | Isolated decision rules and responsible handling of missing evidence |
-| ASUC-04 | Refresh forecasts under carbon constraints | Asynchronous processing, deadline protection and carbon measurements |
+| Backend | One modular API, separate batch workers | Keeps HTTP requests predictable while batch work can be scheduled independently |
+| Data | PostgreSQL with source/timestamp keys | Supports reliable comparison and avoids duplicated imports |
+| Forecasting | Existing model or baseline behind an adapter | Allows replacement without changing the shopper interface |
+| Recommendations | Rules plus evidence, not an opaque score | Users can see why the application suggests waiting or buying |
+| Carbon policy | Time-shift non-urgent forecasts with a deadline | Makes sustainability measurable without sacrificing freshness by design |
+| Runtime | Kubernetes Deployments, Services and CronJobs | Reflects the different lifecycles of web and batch work |
 
-[Detailed use-case specifications](docs/significant-use-cases.md)
+The rationale, alternatives and limitations are documented in the [six Architecture Decision Records](docs/adr/ADR-001.md).
 
-## Carbon-Aware Scheduling
+The supporting documents cover the [requirements](docs/project-specification.md), [significant use cases](docs/significant-use-cases.md), [system architecture](docs/architecture.md), [data and API design](docs/data-model-api.md), [Kubernetes design](docs/kubernetes-design.md), [decision records](docs/adr/ADR-001.md) and [verification checks](docs/verification-plan.md). The [project architecture PDF](Smart_Shopping_Assignment_1.pdf) is included in its latest reviewed layout, with readable tables and full-width heading rules.
 
-The proposed experiment uses a **simulated** carbon-intensity feed. Forecasts may be deferred above a **configurable demonstration threshold of 300 gCO2e/kWh**, unless the next freshness deadline would be violated. The forecast age objective is **at most 24 hours**. Due work is run even if intensity remains high; a missing signal triggers a documented fail-safe policy.
+## Scope and limitations
 
-Operational emissions are **estimated**, not directly measured carbon emissions:
+The performance target (p95 ≤ 2 seconds at a defined 20 RPS demo load), forecast freshness target and carbon threshold are **test criteria**, not results. A forecasting failure should not prevent display of stored observed prices while the database is available. A complete database outage would require an additional availability mechanism, which is not claimed here.
 
-`Energy (kWh) = average power (W) * execution time (s) / 3,600,000`  
-`Estimated emissions (gCO2e) = energy (kWh) * grid intensity (gCO2e/kWh)`
-
-An immediate-execution baseline will be compared with the carbon-aware schedule under the same workload. Delaying a job does **not**, by itself, demonstrate lower total emissions. See [Verification Plan](docs/verification-plan.md).
-
-## Proposed Technology Stack
-
-React 18, Python 3.11+ with FastAPI, PostgreSQL 16, Pandas, a pre-existing forecasting adapter/baseline, Docker, Kubernetes, GitHub Actions, Prometheus, Grafana and PlantUML. These are design choices, not a claim of completed deployment. Course instructions do not call for custom model training or fine-tuning.
-
-## Documentation
-
-- [Project specification (FR and NFR)](docs/project-specification.md)
-- [Architecturally significant use cases](docs/significant-use-cases.md)
-- [Architecture overview](docs/architecture.md)
-- [Relational data model and REST API](docs/data-model-api.md)
-- [Kubernetes and carbon-aware implementation design](docs/kubernetes-design.md)
-- [Architecture decisions (ADR-001 to ADR-006)](docs/adr/ADR-001.md)
-- [Verification and sustainability benchmark plan](docs/verification-plan.md)
-- [Course and review references](docs/references.md)
-- [Changes from architecture review](docs/review-integration.md)
-- [Assignment 1 PDF](Smart_Shopping_Assignment_1.pdf)
-
-## References
-
-The design is grounded in the AACC *Course Overview*, the *AI Architecture and Cloud Computing* lecture notes, relevant SE4AI architecture/requirements lectures and the supplied *Review Smart Shopping Technical Architecture* document. Targets and technologies taken from the review remain **proposed** until implementation and evaluation.
+The design reflects the AACC course material and the technical review of the original concept.

@@ -2,7 +2,7 @@
 
 ## Architecture objectives
 
-The proposed MVP covers only laptops. It preserves a quick shopper experience while handling slower price imports and CPU-intensive forecast refreshes in background jobs. The read path and background path do not share request-time compute. Scheduled work may adapt to a simulated carbon-intensity signal, subject to a strict *attempt-to-execute-by-deadline* policy and measurable freshness SLOs.
+For the first version we are focusing on laptops. We want a product page to feel quick even when a price import or a longer forecasting calculation is running elsewhere. The read path and background path do not share request-time compute. Scheduled work may adapt to a simulated carbon-intensity signal, subject to a strict *attempt-to-execute-by-deadline* policy and measurable freshness SLOs.
 
 ## Logical modules
 
@@ -33,7 +33,7 @@ The proposed MVP covers only laptops. It preserves a quick shopper experience wh
 
 A Use Case Diagram models actors and goals, not physical placement. The Component Diagram models application responsibilities. The Deployment Diagram specifies the proposed Kubernetes Deployments, Services, CronJobs and database storage. All diagrams are proposals, not infrastructure evidence.
 
-## Key refinements from the architecture review
+## What we changed after reviewing the first concept
 
 - Narrow the catalog to laptops; only simple brand/model/price filters in the MVP.
 - Remove merchant trustworthiness scores and price alert subscriptions; neither is supportable without new sources/accounts.

@@ -1,6 +1,6 @@
 # Relational data model and API contract (proposed)
 
-## 1. PostgreSQL schema
+## PostgreSQL schema
 
 The project review proposes PostgreSQL 16 for the 10-laptop/3-retailer reproducible demonstration. Keys below are **design-level specifications** and need implementation migrations and integration tests.
 
@@ -14,9 +14,9 @@ The project review proposes PostgreSQL 16 for the 10-laptop/3-retailer reproduci
 
 Consider PostgreSQL constraints and idempotency under duplicate import or repeated Kubernetes CronJob execution. Recommended indexes include `price_observations(product_id, observed_at DESC)`, `forecast_runs(product_id, generated_at DESC)` and pending-job deadlines. Forecast data and job state must be durable; do not hold critical job ownership only in a process-memory variable.
 
-**Data limitation:** A matching laptop model must be identified with a stable SKU; otherwise comparing retailer offers would conflate different CPU/RAM variants. Only valid, comparable prices enter discount calculations. Timestamp fields use UTC; the displayed UI may convert to local time.
+Laptop variants need a stable SKU; otherwise a comparison could mix different CPU/RAM configurations. Only valid, comparable prices enter discount calculations. Timestamp fields use UTC; the displayed UI may convert to local time.
 
-## 2. API
+## API
 
 The proposed HTTP API uses FastAPI, JSON, Pydantic validation and an OpenAPI 3.1-compatible contract to be finalized in implementation.
 
@@ -42,4 +42,4 @@ The supplied review used a single `GET /health` endpoint; we split it into `live
 }
 ```
 
-**Fail-soft design:** Forecast worker failure causes `future.status=unavailable` and an explicit rules-only recommendation or no recommendation; prices remain visible if PostgreSQL responds. Without a separate verified read cache or snapshot, a full database outage cannot satisfy the stronger availability claim made in the review PDF.
+If the forecast worker fails, the API returns `future.status=unavailable` and an explicit rules-only recommendation or no recommendation; prices remain visible if PostgreSQL responds. Without a separate verified read cache or snapshot, a full database outage cannot satisfy the stronger availability claim made in the review PDF.

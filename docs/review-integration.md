@@ -1,6 +1,6 @@
-# Integration of Technical Architecture Review (v1)
+# What changed after the technical architecture review
 
-This document records which recommendations from the supplied **Review Smart Shopping Technical Architecture** were integrated into Assignment 1. It is a design update, **not an implementation report**.
+We used the supplied **Review Smart Shopping Technical Architecture** as a second reading of the original proposal. Some suggestions made the project more feasible; others needed clarification before we could include them. This note explains what we kept and where the revised design records it. It documents choices, **not implemented features**.
 
 | Review topic | Updated decision | Where documented |
 | --- | --- | --- |
@@ -16,13 +16,13 @@ This document records which recommendations from the supplied **Review Smart Sho
 | REST contract | `/products`, `/products/{id}/insights`, split `/health/live` and `/health/ready`, private `/metrics` | `data-model-api.md` |
 | Kubernetes | Independent API/UI Deployments, batch CronJobs, persistence, config/secret and monitoring | `kubernetes-design.md`, ADR-005 |
 
-## Important corrections to the review
+## Points we did not adopt without qualification
 
 1. **Database outage is not covered by forecasting fallback.** The API can continue showing stored prices if the **forecast worker** fails but PostgreSQL remains reachable; it cannot do so during a total database outage without an additional replicated cache/snapshot. The MVP does not claim this.
 2. **A deadline guarantees an attempt, not successful completion.** Forecast freshness (95% within 24 h) is a measurable target, not a certainty if the worker, database or dataset fails.
 3. **Lower emissions are not automatic.** Deferral can shift a job into a lower-intensity interval, but energy overhead, retries and workload completion must be measured against a controlled immediate-run baseline.
 4. **An observed price delta is not a verified merchant discount claim.** The 30-day reference uses a disclosed comparison method and data-quality requirements.
-5. **"Production specification" is treated as proposed.** The architecture is an Assignment 1 design; deployments, endpoints, replicas, performance and carbon outcomes have not been verified.
+5. **"Production specification" is treated as proposed.** The architecture is a design proposal; deployments, endpoints, replicas, performance and carbon outcomes have not been verified.
 6. **Kubernetes CronJob only triggers work.** The carbon controller must explicitly perform policy evaluation and persist decisions. `concurrencyPolicy: Forbid` alone does not prevent duplicate work after retries; DB idempotency is required.
 
 Review source: `v1_Review_Smart_Shopping_Technical_Architecture.pdf` (nine pages), supplied with the project materials. The review contains illustrative schematics; editable PlantUML versions matching the revised proposal are in `docs/diagrams/`.

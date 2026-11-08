@@ -1,14 +1,17 @@
 # Smart Shopping - Project specification
 
 **Course:** AI Architecture and Cloud Computing (AACC)  
+**Authors:** Linda Vincelová and Angelika Rischáneková  
 **Repository:** https://github.com/anchelesr/AACC-Smart-Shopping  
-**Status:** Proposed architecture, Assignment 1 (no claim of working implementation)
+**Status:** Architecture proposal; the application and its measured results are not yet available
 
-## 1. Project goal
+## Project goal
 
-The Smart Shopping MVP helps shoppers compare a fixed catalog of **laptop models** across multiple retailers by combining historical observations (*Past*), observed current offers (*Present*) and stored, pre-computed seven-day forecasts (*Future*). A transparent policy provides **Buy Now**, **Wait**, or **Insufficient Evidence** recommendations. Non-urgent forecast refreshes are governed by simulated electricity carbon intensity while maintaining freshness targets.
+We chose laptops for the first version because prices vary enough to make historical comparison interesting, but the catalog can still remain small and testable. A shopper should see where the numbers came from rather than trust an unexplained bargain label. The interface therefore brings together historical observations (*Past*), current offers (*Present*) and stored seven-day estimates (*Future*). Its recommendation is a short, transparent **Buy Now**, **Wait** or **Insufficient Evidence** message.
 
-## 2. System boundary and stakeholders
+Behind the scenes, non-urgent forecast refreshes can be delayed according to a simulated electricity carbon-intensity signal. The delay must not be allowed to silently make the displayed forecast too old.
+
+## System boundary and stakeholders
 
 **Shopper:** searches, filters, examines laptop prices and evidence, reads recommendation.  
 **System operator:** configures carbon policy, inspects batch results and metrics.  
@@ -21,7 +24,7 @@ The Smart Shopping MVP helps shoppers compare a fixed catalog of **laptop models
 
 Ten or more demonstration laptop models, at least three sample retailers and 30+ days of timestamped price history per relevant case are proposed as a **test fixture**, not real-life retailer coverage. Brand, model and price filtering are in scope; sophisticated specification facets are not. No accounts, checkout, payment processing, price-alert push/email, merchant trust ranking, unauthorised live scraping or product manufacturing/shipping carbon footprint are included.
 
-## 3. Functional requirements
+## Functional requirements
 
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
@@ -40,7 +43,7 @@ Ten or more demonstration laptop models, at least three sample retailers and 30+
 
 For the MVP, one possible explicit 30-day product reference is the **median of daily lowest valid offers** for a matching product over the last 30 days. The current discount-evidence delta is `(current_lowest_price / reference_price - 1) * 100%`. This is a design policy to validate during implementation, **not** a claim that the seller advertised a legally compliant discount. The comparison only proceeds if sufficient observations exist and currencies are comparable. Recommendation rules combine this delta and the direction of the stored seven-day forecast; results carry short, evidence-based explanations. When a forecast is missing/stale, use rule-only information with a conspicuous caveat or return Insufficient Evidence.
 
-## 4. Non-functional properties - proposed targets
+## Non-functional properties - proposed targets
 
 | ID | Quality attribute | Proposed acceptance target |
 | --- | --- | --- |
@@ -55,9 +58,7 @@ For the MVP, one possible explicit 30-day product reference is the **median of d
 | NFR-09 | Scaling | API replicas independent of scheduled batch workers; defined resource requests and limits. |
 | NFR-10 | Sustainability evidence | Controlled immediate-run vs carbon-aware experiment records energy, gCO2e, deferrals, forecast age and deadline errors. |
 
-These values are **design acceptance targets**, not tested achievements. Carbon threshold and maximum age are configurable. A freshness target for 95% is not equivalent to proof of zero errors in a real production service.
-
-## 5. Data and AI constraints
+## Data and AI constraints
 
 - Price observations contain product, retailer, amount, currency, observation time and source provenance.
 - The system reads pre-computed forecasts; the interactive HTTP request never launches an expensive forecast calculation.
@@ -65,7 +66,3 @@ These values are **design acceptance targets**, not tested achievements. Carbon 
 - Input quantities, currencies and timezones must be normalized; currency conversion is not silently applied to incomparable offers.
 - Forecasts are estimates with timestamp and limitations, not guaranteed purchasing advice.
 - Operational gCO2e estimation concerns the server-side **compute workload**, not the environmental impact of producing or shipping laptops.
-
-## 6. Architecture drivers and assumptions
-
-The primary architectural tension is fast, predictable shopper-facing reads versus deferrable energy-consuming batch computations. The design therefore isolates a read-mostly API from ingestion/forecast CronJobs, persists results in PostgreSQL and uses carbon-aware time-shifting only while freshness constraints can still be met. Deployments, API contracts, decision records and test plans are defined in the rest of `docs/`.

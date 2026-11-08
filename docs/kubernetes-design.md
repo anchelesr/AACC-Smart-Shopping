@@ -1,6 +1,8 @@
 # Kubernetes, monitoring and carbon-aware scheduling (planned)
 
-## 1. Deployment mapping
+Our proposed Kubernetes setup separates services that must stay available from jobs that only run at certain times. The table is the intended configuration, not proof of a working cluster.
+
+## Deployment mapping
 
 | Component | Kubernetes resources | Reason |
 | --- | --- | --- |
@@ -13,13 +15,13 @@
 | Prometheus, Grafana | Monitoring workloads or hosted deployment | HTTP latency, job and carbon metrics. |
 | ConfigMap, Secret | Policy/carbon-simulator configuration, credentials | No plaintext secrets in version control. |
 
-**Controls:** CronJobs should propose `concurrencyPolicy: Forbid`, retry limits, resource requests/limits, non-root containers where feasible, readiness/liveness probes and network-limited internal DB access. `Forbid` does not eliminate duplicates after failure: SQL uniqueness and idempotent state changes remain necessary.
+For the scheduled jobs we propose `concurrencyPolicy: Forbid`, retry limits, resource requests/limits, non-root containers where feasible, readiness/liveness probes and network-limited internal DB access. `Forbid` does not eliminate duplicates after failure: SQL uniqueness and idempotent state changes remain necessary.
 
-## 2. Carbon-aware decision policy
+## Carbon-aware decision policy
 
-**Inputs:** Simulated intensity in gCO2e/kWh, current UTC time, job `deadline_at`, product's latest forecast creation time and model-data availability.
+Each scheduling decision uses the simulated intensity in gCO2e/kWh, the current UTC time, the job `deadline_at`, the latest forecast creation time and model-data availability.
 
-**Proposed threshold:** 300 gCO2e/kWh (demonstration config, not an energy industry standard). **Proposed freshness limit:** 24 h. A clock-based deadline is checked before deciding to defer. Job age and forecast age are distinct: storing one per-job due-by timestamp prevents the scheduler from resetting a deadline on each retry.
+For the demonstration, the intensity threshold is 300 gCO2e/kWh and the freshness limit is 24 hours. These are project settings rather than industry standards. A clock-based deadline is checked before deciding to defer. Job age and forecast age are distinct: storing one per-job due-by timestamp prevents the scheduler from resetting a deadline on each retry.
 
 ```
 if deadline_reached(job):
@@ -35,18 +37,18 @@ else:
 
 A job failure cannot be counted as meeting a freshness SLO. A deadline override tries to execute but cannot guarantee successful completion when dependencies are broken. The 95% fresh-forecast target and the no-intentional-past-deadline rule are design-level objectives to verify.
 
-## 3. Energy and carbon estimation
+## Energy and carbon estimation
 
 `energy_kWh = average_power_W * duration_seconds / (3600 * 1000)`  
 `estimated_gCO2e = energy_kWh * grid_intensity_gCO2e_per_kWh`
 
 The power/energy estimate requires a documented method (e.g. instrument or estimator). Separate **energy savings** from lower grid intensity. Under a fixed workload, deferral can lower emissions even when energy stays similar; overhead and retries may offset gains. Never label unmeasured outcomes as proven reductions.
 
-## 4. Observability and SLO monitoring
+## Observability and SLO monitoring
 
 Prometheus-compatible telemetry should include API p95 latency, 4xx/5xx, pending/finished/failed/deferred job counts, oldest forecast age, deadline overrides/misses, kWh/job, estimated gCO2e/job and intensity at execution. Grafana panels can compare baseline and carbon-aware runs. The `/metrics` endpoint should not be exposed publicly.
 
-## 5. Graceful failures
+## Graceful failures
 
 - **Forecast unavailable/stale:** serve observed prices and history; show warning and rules-only or insufficient-evidence recommendation.
 - **Signal unavailable:** log status and use fail-safe policy; do not defer deadline-critical work.
