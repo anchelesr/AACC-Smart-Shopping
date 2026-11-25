@@ -55,6 +55,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 ## 5. Critical Tasks — P0
 
 ### T001 — Push revision 9 to the GitHub repository
+- [ ] **T001 completed**
 - **Priority:** P0 · **Status:** TODO · **Effort:** S
 - **Reason:** nothing downstream (CI, GHCR, submission link) works until the code is on GitHub.
 - **Requirement:** R1, R3 · **Files:** whole repository, `SUBMISSION.txt`
@@ -64,6 +65,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** open the repository in a browser; run `git log -1`.
 
 ### T002 — First green run of `ci-cd.yml`
+- [ ] **T002 completed**
 - **Priority:** P0 · **Status:** VERIFY · **Effort:** M (L if fixes are needed)
 - **Reason:** CI/CD is a required deliverable and the workflow has never run.
 - **Requirement:** R3 · **Files:** `.github/workflows/ci-cd.yml`, `app.yml`, `scripts/smoke.sh`
@@ -73,6 +75,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** screenshot of the green run and the package page (also used in the video).
 
 ### T003 — Deploy to a real kind cluster and pass `scripts/smoke.sh`
+- [ ] **T003 completed**
 - **Priority:** P0 · **Status:** VERIFY · **Effort:** L
 - **Reason:** "running system" and "dynamic redeployment" have no proof until a cluster runs them.
 - **Requirement:** R2, R6a · **Files:** `scripts/demo-up.sh`, `smoke.sh`, `deploy/k8s/**`, `deploy/kind/kind-config.yaml`
@@ -82,6 +85,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** saved terminal output.
 
 ### T004 — Observe and record the eviction (taint → worker moves)
+- [ ] **T004 completed**
 - **Priority:** P0 · **Status:** VERIFY · **Effort:** M
 - **Reason:** the central dynamic-behaviour claim.
 - **Requirement:** R6a · **Files:** `src/shopping/placement.py`, `deploy/k8s/base/worker.yaml`, `rbac.yaml`
@@ -91,6 +95,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** `demo-evidence.txt`, `kubectl get pods -o wide` captures.
 
 ### T005 — Record the video (≤ 5 min)
+- [ ] **T005 completed**
 - **Priority:** P0 · **Status:** TODO · **Effort:** M
 - **Requirement:** R7 · **Files:** `docs/video-script.md`
 - **Depends on:** T003, T004, T011 (dashboard), ideally T010
@@ -99,6 +104,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** both authors watch it against the "What not to say" list.
 
 ### T006 — Submit in Teams before 4 Dec 23:59
+- [ ] **T006 completed**
 - **Priority:** P0 · **Status:** TODO · **Effort:** S
 - **Requirement:** R1, R7 · **Depends on:** T001, T005
 - **Steps:** one member uploads the video and the file with the link (`SUBMISSION.txt` or the repository URL); submit early, multiple submissions are allowed.
@@ -108,6 +114,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 ## 6. Mandatory Tasks — P1
 
 ### T010 — Build the Ollama image and verify real model exchange
+- [ ] **T010 completed**
 - **Status:** VERIFY · **Effort:** M · **Requirement:** R6b · **Files:** `deploy/ollama/Dockerfile`, `deploy/k8s/overlays/ollama`, `src/shopping/llm/providers.py`
 - **Depends on:** T003
 - **Steps:** [ ] `scripts/demo-up.sh --with-ollama` (needs internet and ~1.5 GB); [ ] confirm the base tag `ollama/ollama:0.9.6` exists, else change `OLLAMA_IMAGE`; [ ] ask the assistant in GREEN, AMBER, RED; [ ] read `/ops/traces`.
@@ -115,6 +122,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** trace output; if small models fail the guardrail often, record the rate (do not hide it).
 
 ### T011 — Verify Prometheus and Grafana on the live cluster
+- [ ] **T011 completed**
 - **Status:** VERIFY · **Effort:** M · **Requirement:** R4 · **Files:** `deploy/k8s/monitoring/**`
 - **Depends on:** T003
 - **Steps:** [ ] port-forward Prometheus: targets page shows api, worker, controller `UP`; [ ] rules page loads 10 rules; [ ] Grafana opens the dashboard without login; [ ] run the scenario and check every panel changes (mode, placement, worker node table, estimates).
@@ -122,6 +130,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** screenshots; fix queries in `dashboards/shopping.json` and keep `tests/test_k8s_manifests.py` green.
 
 ### T012 — Decide and apply the simulator fix for the renewable window
+- [ ] **T012 completed**
 - **Status:** BLOCKED (needs authors' decision) · **Effort:** S · **Requirement:** R5 · **Files:** `src/shopping/energy.py` (`SimulatedFeed`), `scripts/carbon_experiment.py`, `tests/test_policy_energy.py`
 - **Depends on:** authors' decision between (a) moving the default window to the intensity trough, (b) coupling intensity to the renewable flag, (c) leaving it and keeping both scenarios.
 - **Steps:** apply the decision minimally; re-run `scripts/carbon_experiment.py`; update `docs/carbon-experiment.md`, `implementation.md` row 18 and the video script's numbers.
@@ -129,40 +138,47 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - **Verification:** `pytest`, experiment re-run.
 
 ### T013 — Review the tool's unconfirmed decisions
+- [ ] **T013 completed**
 - **Status:** TODO · **Effort:** S · **Requirement:** C4/C5 · **Files:** `docs/implementation.md` rows 17–22, `docs/ai-usage-log.md` Entry 5
 - **Steps:** [ ] read rows 4–5, 9–11, 14–22; [ ] confirm or reject: Deployments instead of Jobs/CronJobs, Qwen model names, metrics derived from the database, controllable simulation, moved `postgres.yaml`, two-trace experiment; [ ] set ADR-011/013/014/017 to accepted or leave proposed.
 - **Acceptance:** [ ] every row marked confirmed or changed; [ ] ADR statuses consistent with README table.
 - **Verification:** diff of docs.
 
 ### T014 — Complete the AI usage log reflections
+- [ ] **T014 completed**
 - **Status:** TODO · **Effort:** M · **Requirement:** C5 · **Files:** `docs/ai-usage-log.md` (Entries 1–6)
 - **Steps:** per entry write what AI did well and badly, what was corrected, what was done by hand; fill the tool/model of revision 1 if used; confirm the serving model name.
 - **Acceptance:** [ ] no "Authors to complete" left; [ ] statements match what the authors actually did.
 - **Verification:** `grep -n "Authors to complete" docs/ai-usage-log.md` returns nothing.
 
 ### T015 — Three-version comparison table
+- [ ] **T015 completed**
 - **Status:** TODO · **Effort:** M · **Requirement:** C6 · **Files:** `docs/ai-usage-log.md` Entry 2
 - **Steps:** the authors fill versions 1–3 (without AI, with AI initial prompt, with improved prompt) for use-case model, sequence diagrams, component model, ADRs and write the comparison. The tool cannot supply version 1.
 - **Acceptance:** [ ] all cells filled; [ ] comparison states differences in quality and effort.
 - **Verification:** teacher's expectation re-read in the original assignment text.
 
 ### T016 — Name the NASA standard (or drop the question)
+- [ ] **T016 completed**
 - **Status:** BLOCKED (missing information) · **Effort:** S · **Files:** `docs/sync-report.md` (line "NASA standards"), `docs/references.md`
 - **Steps:** ask which NASA recommendation the assignment means; add it or record that none applies.
 - **Acceptance:** [ ] open question removed from the sync report or answered with a source.
 
 ### T017 — Fix what T002–T004 and T010–T011 reveal
+- [ ] **T017 completed**
 - **Status:** TODO (reserved buffer) · **Effort:** L
 - **Steps:** each failure gets its own commit and, where behaviour changes, a regression test; keep tests green on SQLite and PostgreSQL.
 - **Acceptance:** [ ] all tasks above reach their acceptance criteria; [ ] no new unverified claims in the docs.
 
 ### T018 — Replace "not verified" with evidence in the documents
+- [ ] **T018 completed**
 - **Status:** TODO · **Effort:** M · **Files:** `docs/implementation.md` ("Not verified", status table), `README.md` status paragraph, `docs/cicd.md`, `docs/observability.md`, `docs/sync-report.md`, `docs/verification-plan.md` (V-10, V-09)
 - **Depends on:** T002–T004, T010–T011
 - **Steps:** state only what was observed, with date and how; leave remaining gaps listed.
 - **Acceptance:** [ ] every "never run" sentence is either true or replaced by evidence; [ ] counts of tests match the last run.
 
 ### T019 — Final rebuild of PDF and zip
+- [ ] **T019 completed**
 - **Status:** TODO · **Effort:** S · **Depends on:** T012, T018
 - **Steps:** rebuild `Smart_Shopping_Assignment_1.pdf`; zip without `.git`, caches; check page count and tables.
 - **Acceptance:** [ ] PDF matches the repository docs; [ ] repository `main` contains the same PDF.
