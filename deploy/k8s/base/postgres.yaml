@@ -1,0 +1,58 @@
+# PostgreSQL for Smart Shopping (ADR-005, source of truth): one instance for the demonstration cluster.
+# Apply with the rest of the system:  kubectl apply -k deploy/k8s/overlays/kind  (create the secret `postgres` first, or use that overlay)
+# Application:  SHOPPING_DATABASE_URL=postgresql://shopping:<password>@postgres:5432/shopping python -m shopping
+# The schema is created by the application on first start (shopping/schema.py). No replication, no backup: demonstration only.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels: {app: postgres}
+spec:
+  clusterIP: None
+  selector: {app: postgres}
+  ports:
+    - {name: sql, port: 5432, targetPort: 5432}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  labels: {app: postgres}
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: {app: postgres}
+  template:
+    metadata:
+      labels: {app: postgres}
+    spec:
+      securityContext: {fsGroup: 999}
+      nodeSelector: {energy-pool: standard}
+      tolerations:                                    # the database is not a flexible workload: it is never evicted
+        - {key: energy-role, operator: Exists, effect: NoExecute}
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - {name: sql, containerPort: 5432}
+          env:
+            - {name: POSTGRES_DB, value: shopping}
+            - {name: POSTGRES_USER, value: shopping}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: postgres, key: password}}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          readinessProbe:
+            exec: {command: ["pg_isready", "-U", "shopping", "-d", "shopping"]}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: {requests: {storage: 1Gi}}

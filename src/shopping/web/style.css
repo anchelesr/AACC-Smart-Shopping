@@ -1,0 +1,24 @@
+:root { --bg:#f7f8fa; --fg:#1b1f24; --muted:#5d6672; --card:#fff; --line:#dfe3e8; --accent:#1f6f4a; --buy:#1f6f4a; --wait:#a15c00; --none:#5d6672; --red:#9b1c1c; }
+@media (prefers-color-scheme: dark) { :root { --bg:#14171a; --fg:#e8ebee; --muted:#9aa4af; --card:#1d2227; --line:#2f363d; --accent:#4fb383; --buy:#4fb383; --wait:#e0a14a; --none:#9aa4af; --red:#ef7b7b; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
+header, main, footer { max-width:1000px; margin:0 auto; padding:12px 16px; }
+header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
+h1 { font-size:1.35rem; margin:0; } h2 { font-size:1.15rem; margin:0 0 8px; } h3 { font-size:1rem; margin:12px 0 4px; }
+nav { display:flex; gap:4px; }
+button, input, select { font:inherit; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
+button { cursor:pointer; } button:hover { border-color:var(--accent); }
+.tab.active, .primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.notice { max-width:968px; margin:0 auto 4px; padding:8px 12px; border-radius:6px; background:var(--card); border:1px solid var(--red); color:var(--red); }
+.card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:10px 0; }
+.row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px; }
+.muted { color:var(--muted); font-size:.9rem; }
+.badge { display:inline-block; padding:1px 8px; border-radius:10px; border:1px solid currentColor; font-size:.85rem; font-weight:600; }
+.BUY_NOW, .GREEN { color:var(--buy); } .WAIT, .AMBER { color:var(--wait); } .INSUFFICIENT_EVIDENCE { color:var(--none); } .RED { color:var(--red); }
+table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); vertical-align:top; font-size:.92rem; }
+.chat { max-height:260px; overflow:auto; } .q { font-weight:600; } .a { margin:2px 0 8px; }
+.chart line, .chart polyline { stroke:var(--accent); fill:none; stroke-width:2; } .chart text { fill:var(--muted); font-size:11px; }
+pre { overflow:auto; background:var(--bg); padding:8px; border-radius:6px; font-size:.85rem; }
+footer { color:var(--muted); font-size:.85rem; }
+input[type=text], input[type=search] { min-width:260px; flex:1 1 260px; }

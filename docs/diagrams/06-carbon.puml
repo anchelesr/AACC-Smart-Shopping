@@ -1,0 +1,63 @@
+@startuml
+title Energy-aware operation: sense, decide, act, place (ASUC-04)
+autonumber
+hide footbox
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+participant "Time Trigger" as P0 #edf1f5
+participant "Carbon Monitor" as P1 #e3f6ed
+participant "Energy Signal Provider" as P2 #edf1f5
+participant "Policy Engine" as P3 #e3f6ed
+participant "Data Store" as P4 #f3edff
+participant "Event Bus" as P5 #edf1f5
+participant "Job Scheduler" as P6 #fff3df
+participant "Forecast Worker" as P7 #e3f6ed
+participant "Placement Controller" as P8 #e3f6ed
+participant "Kubernetes API" as P9 #edf1f5
+P0 -> P1 : Refresh signals (every 5 minutes)
+activate P1
+P1 -> P2 : Read carbon intensity, price, renewable flag
+P2 --> P1 : Values with timestamp / unavailable
+P1 -> P1 : Validate range and freshness
+P1 -> P4 : Save sample (or a MISSING sample)
+deactivate P1
+P0 -> P3 : Evaluate operating mode
+activate P3
+P3 -> P4 : Load active policy and current mode
+P3 -> P1 : Read the two latest samples
+alt no valid sample for longer than stale limit
+P3 -> P3 : Mode GREEN, reason signal_stale (fail-safe)
+else signal current
+P3 -> P3 : Classify intensity and price with hysteresis; take the more restrictive class
+P3 -> P3 : Renewable available forces GREEN; apply unexpired operator override
+end
+alt mode changed
+P3 -> P4 : Persist new mode (source of truth)
+P3 -> P5 : Publish mode.changed(from, to, reason)
+end
+deactivate P3
+P5 -> P6 : Deliver modeChanged
+P5 -> P8 : Deliver modeChanged
+P0 -> P6 : Tick
+activate P6
+P6 -> P3 : Read current mode (pull, cached up to 60 s)
+P6 -> P4 : Claim due jobs with lease
+loop each claimed job
+alt deadline reached or GREEN or (AMBER and half window left)
+P6 -> P7 : Run forecast job
+activate P7
+P7 -> P4 : Read observations; store versioned forecast if sanity check passes
+P7 --> P6 : Outcome and duration
+deactivate P7
+P6 -> P6 : Estimate kWh and gCO2e
+else deferrable job
+P6 -> P4 : Release lease; next check before deadline
+end
+P6 -> P4 : Write job execution log
+end
+deactivate P6
+P8 -> P3 : Read mode and placement target
+P8 -> P9 : Check node pools, taint non-target pool (NoExecute)
+P9 --> P8 : Pods rescheduled on target pool
+P8 -> P4 : Record placement decision (APPLIED / SKIPPED)
+@enduml

@@ -1,0 +1,35 @@
+# Demonstration overlay for a local kind cluster (deploy/kind/kind-config.yaml).
+# DEMONSTRATION VALUES ONLY: the generated secrets below are public and must never be used outside a throw-away cluster.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: shopping
+resources:
+  - ../../base
+  - ../../monitoring
+images:
+  - name: ghcr.io/anchelesr/aacc-smart-shopping
+    newName: shopping
+    newTag: dev                        # built locally and loaded into kind by scripts/demo-up.sh; CI deploys the SHA tag instead
+generatorOptions:
+  disableNameSuffixHash: true
+secretGenerator:
+  - name: postgres
+    literals: [password=demo-postgres-password]
+  - name: shopping-ops
+    literals: [token=demo-ops-token]
+  - name: grafana-admin
+    literals: [password=demo-grafana-password]
+patches:
+  - target: {kind: ConfigMap, name: shopping-config}
+    patch: |-
+      - {op: replace, path: /data/SHOPPING_FEED, value: controlled}          # signals are set by scripts/demo-scenario.sh
+      - {op: replace, path: /data/SHOPPING_INTERVAL, value: "5"}
+      - {op: replace, path: /data/SHOPPING_MODE_CACHE_SECONDS, value: "5"}
+      - {op: replace, path: /data/SHOPPING_SEED_DEMO, value: "1"}
+      - op: add
+        path: /data/SHOPPING_INITIAL_POLICY
+        value: '{"dwell_minutes": 0, "consecutive": 1}'                      # demonstration: react within one step (production: 15 minutes, 2 samples)
+  - target: {kind: Deployment, labelSelector: "app.kubernetes.io/part-of=shopping"}
+    patch: |-
+      - {op: add, path: /spec/template/spec/containers/0/imagePullPolicy, value: IfNotPresent}
+      - {op: add, path: /spec/template/spec/initContainers/0/imagePullPolicy, value: IfNotPresent}

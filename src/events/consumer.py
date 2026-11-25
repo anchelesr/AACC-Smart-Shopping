@@ -15,7 +15,7 @@ from .model import Event, TOPIC_DEAD
 
 class ProcessedStore:
     def __init__(self, path: str = ":memory:") -> None:
-        self.db = sqlite3.connect(path)
+        self.db = sqlite3.connect(path, check_same_thread=False)      # the control loop runs in its own thread (callers hold a lock)
         self.db.execute("CREATE TABLE IF NOT EXISTS processed_events (grp TEXT, event_id TEXT, PRIMARY KEY (grp, event_id))")
 
     def seen(self, group: str, event_id: str) -> bool:

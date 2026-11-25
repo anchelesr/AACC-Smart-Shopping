@@ -1,0 +1,46 @@
+@startuml
+title Import and validate price data (ASUC-03)
+autonumber
+hide footbox
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+participant "Time Trigger" as P0 #edf1f5
+participant "Price Importer" as P1 #fff3df
+participant "Policy Engine" as P2 #e3f6ed
+participant "Price Data Provider" as P3 #edf1f5
+participant "Data Store" as P4 #f3edff
+participant "Event Bus" as P5 #edf1f5
+participant "Job Scheduler" as P6 #fff3df
+P0 -> P1 : Start scheduled import(sourceId)
+activate P1
+P1 -> P2 : Read operating mode
+P2 --> P1 : GREEN | AMBER | RED
+P1 -> P1 : Select batches; the daily batch always runs, optional backfill only in GREEN
+P1 -> P3 : Fetch approved observation batch
+activate P3
+P3 --> P1 : Records / source error
+deactivate P3
+alt batch received
+P1 -> P4 : Store batch as received with checksum (raw layer)
+loop each record
+P1 -> P1 : Validate variant, retailer, currency, positive price, time
+alt valid record
+P1 -> P1 : Normalize decimal amount, UTC time, currency code
+else invalid record
+P1 -> P1 : Add to reject list with reason
+end
+end
+P1 -> P4 : Upsert accepted records by stable source identity
+activate P4
+P4 --> P1 : Inserted / updated / unchanged counts
+deactivate P4
+P1 -> P4 : Write import report (accepted, rejected, reasons)
+P1 -> P5 : Publish price.changed(changed laptops, run id)
+P5 -> P6 : Deliver priceChanged
+P6 -> P4 : Keep one open forecast job per laptop (deadline now + 24 h, never reset)
+else source unavailable
+P1 -> P4 : Record failed import run; retry at next trigger
+end
+P1 --> P0 : Import outcome
+deactivate P1
+@enduml

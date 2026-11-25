@@ -1,0 +1,35 @@
+@startuml
+title Communication diagram: assess a laptop's price and get advice (ASUC-01)
+skinparam shadowing false
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 11
+skinparam rectangle {
+  BorderColor #555555
+  RoundCorner 6
+}
+left to right direction
+rectangle "Shopper" as S #edf1f5
+rectangle ":Shopper Client" as UI #eaf2ff
+rectangle ":Shopping API" as API #fff3df
+rectangle ":Price Evidence" as EV #fff3df
+rectangle ":Advice Engine" as ADV #fff3df
+rectangle ":Forecast Service" as FS #fff3df
+rectangle ":Catalog Query" as CAT #fff3df
+database ":Data Store" as DB #f3edff
+rectangle ":Telemetry" as TEL #edf1f5
+S --> UI : 1: open laptop details
+UI --> API : 2: getInsights(productId, budget, brands)
+API --> EV : 3: getEvidence(productId)
+EV --> DB : 3.1: readOffers, readObservations(30 d)
+API --> ADV : 4: advise(productId, evidence, constraints)
+ADV --> FS : 4.1: getLatest(productId)
+FS --> DB : 4.1.1: readLatestForecast
+ADV --> ADV : 4.2: apply rules and constraints
+API --> CAT : 5 [constraints not met]: findAlternatives
+CAT --> DB : 5.1: readLowestCurrentOffers
+API --> TEL : 6: recordRequest(latency, states)
+API --> UI : 7: insights
+UI --> S : 8: show history, offers, forecast, advice
+@enduml

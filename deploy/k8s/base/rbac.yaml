@@ -1,0 +1,28 @@
+# The Placement Controller changes the energy-role taint of nodes through the Kubernetes API.
+# Least privilege: it can read nodes and patch them, nothing else, and it has no access to secrets or pods.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shopping-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: shopping-node-tainter
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: shopping-node-tainter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: shopping-node-tainter
+subjects:
+  - kind: ServiceAccount
+    name: shopping-controller
+    namespace: shopping

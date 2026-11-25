@@ -16,7 +16,7 @@ The matrices connect stakeholders and requirements to use cases, components, dec
 | FR-08 Assistant explanation | Should | UC2 ext. | ASUC-02 | Assistant Service, LLM Gateway | 007, 016 |
 | FR-09 Import and validation | Must | UC3 | ASUC-03 | Price Importer | 002, 005 |
 | FR-10 Import report | Should | UC3 | ASUC-03 | Price Importer, Operator Console | 002 |
-| FR-11 Energy signal monitoring | Must | UC4 | ASUC-04a | Energy Monitor | 004, 014 |
+| FR-11 Energy signal monitoring | Must | UC4 | ASUC-04a | Carbon Monitor | 004, 014 |
 | FR-12 Operating mode and policy | Must | UC4 | ASUC-04a | Policy Engine, Operator Console | 004 |
 | FR-13 Carbon-adaptive behaviour | Must | UC4 | ASUC-04b | Job Scheduler, Model Router, Price Importer, Model Evaluator | 004, 005, 007, 015 |
 | FR-14 Refresh under a deadline | Must | UC4 | ASUC-04b | Job Scheduler, Forecast Worker | 004, 005, 008 |
@@ -146,3 +146,7 @@ The identifiers and priorities are defined in the [specification](project-specif
 | 015 | Route by value and cost; small local model, large external model | FR-21, NFR-10, NFR-14, NFR-18 |
 | 016 | No autonomous agent: a fixed, bounded workflow | FR-08, FR-21, NFR-06, NFR-18 |
 | 017 | Server-side price watch under a pseudonymous device id | FR-06, NFR-05, NFR-06 |
+
+## Implementation and tests
+
+The module and the automated tests of each component are listed in [implementation status](implementation.md), the checks that now have evidence and the remaining gaps in the [verification plan](verification-plan.md#evidence-that-exists-after-revision-8). Requirements without code in revision 8: FR-16 (dashboards; only a `/metrics` text endpoint exists), FR-20 (drift shapes), NFR-01, NFR-09, NFR-10, NFR-17 (nothing measured), and the Kubernetes parts of NFR-08 and NFR-20 (placement was tested against a fake cluster only).

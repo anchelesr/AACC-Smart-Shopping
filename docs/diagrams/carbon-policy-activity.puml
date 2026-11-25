@@ -1,25 +1,64 @@
 @startuml
-title Carbon-Aware Forecast Job - Decision Policy
+title Operating-mode decision and its effect (UC4: carbon, price, renewable)
 skinparam shadowing false
 skinparam backgroundColor white
+skinparam dpi 130
+skinparam ActivityBackgroundColor #FFF4F4
+skinparam ActivityBorderColor #B52330
+skinparam ArrowColor #555555
+skinparam ActivityDiamondBackgroundColor #FFF4F4
+skinparam ActivityDiamondBorderColor #B52330
+skinparam PartitionBorderColor #AAAAAA
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
 start
-:Claim pending job idempotently;
-:Read last forecast age and persisted deadline;
-if (Deadline reached?) then (yes)
-  :EXECUTE (forced attempt);
-else (no)
-  :Read simulated intensity;
-  if (Signal available?) then (yes)
-    if (Intensity <= 300 gCO2e/kWh?) then (yes)
-      :EXECUTE (low-carbon window);
+partition "Decide (every 5 minutes, Policy Engine)" {
+  :Load the active policy and the current mode;
+  if (Valid sample newer than the stale limit?) then (no)
+    :candidate = GREEN behaviour\nreason = signal_stale;
+  else (yes)
+    :Classify carbon intensity and electricity price\nseparately against their thresholds;
+    if (Two consecutive samples beyond a threshold\nor below it by the hysteresis margin?) then (yes)
+      :class = new class for that signal;
     else (no)
-      :DEFER and record next evaluation before deadline;
+      :class = current class for that signal;
     endif
-  else (no)
-    :Record signal error;
-    :Fail-safe retry without passing deadline;
+    :candidate = the more restrictive class;
+    if (Renewable energy available?) then (yes)
+      :candidate = GREEN\nreason = renewable;
+    endif
   endif
-endif
-:Persist job outcome and telemetry;
+  if (Operator override active and not expired?) then (yes)
+    :candidate = override mode;
+  endif
+  if (candidate differs from the current mode?) then (yes)
+    :Persist the new mode with its reason, parameters\nand placement target;
+    :Publish mode.changed and emit modeChanged to Telemetry;
+  else (no)
+    :Refresh the evaluation time;
+  endif
+}
+partition "Act (every consumer reads the mode)" {
+  fork
+    :Forecast jobs:\ndeadline reached = RUN in any mode;\nGREEN = RUN; AMBER = RUN if at most half\nof the window remains; RED = DEFER;
+  fork again
+    :AI Router:\nGREEN = small, escalate to large;\nAMBER = small or template;\nRED = cache or template only;
+  fork again
+    :Optional batches (evaluation, backfill):\nrun only in GREEN;\nthe daily import is never deferred;
+  fork again
+    :Worker concurrency and cache TTL\nfollow the mode parameters;
+  fork again
+    :Placement Controller:\neco pool for AMBER, RED or renewable;\nstandard pool otherwise (with safety checks);
+  end fork
+}
+partition "Feedback" {
+  :Record decisions, placements, kWh and gCO2e per job;
+  :Operator compares with the immediate-run baseline;
+}
 stop
+note right
+  Threshold values are configurable demonstration values,
+  not industry standards (see docs/carbon-adaptation.md).
+end note
 @enduml

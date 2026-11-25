@@ -20,7 +20,7 @@ def iso(hours_ago):
 def env():
     db = connect()
     db.executemany("INSERT INTO products VALUES (?, ?, ?)", [("l1", "Acme", "A1"), ("l2", "Beta", "B2"), ("l3", "Acme", "A3"), ("l4", "Acme", "A4")])
-    add = lambda l, r, price, h: db.execute("INSERT INTO observations VALUES (?, ?, ?, ?)", (l, r, iso(h), price))
+    add = lambda l, r, price, h: db.execute("INSERT INTO observations (laptop_id, retailer, observed_at, price) VALUES (?, ?, ?, ?)", (l, r, iso(h), price))
     add("l1", "shop-a", 1100.0, 30); add("l1", "shop-a", 1000.0, 2); add("l1", "shop-b", 1050.0, 3)   # latest per retailer: 1000, 1050
     add("l2", "shop-a", 700.0, 1)
     add("l3", "shop-a", 800.0, 1)
@@ -31,7 +31,7 @@ def env():
 # ---- catalog
 def test_current_offers_are_the_latest_per_retailer():
     db = connect(); db.execute("INSERT INTO products VALUES ('l1','Acme','A1')")
-    db.executemany("INSERT INTO observations VALUES ('l1', ?, ?, ?)", [("shop-a", iso(30), 1100.0), ("shop-a", iso(2), 1000.0), ("shop-b", iso(3), 1050.0)])
+    db.executemany("INSERT INTO observations (laptop_id, retailer, observed_at, price) VALUES ('l1', ?, ?, ?)", [("shop-a", iso(30), 1100.0), ("shop-a", iso(2), 1000.0), ("shop-b", iso(3), 1050.0)])
     assert [(o["retailer"], o["price"]) for o in current_offers(db, "l1")] == [("shop-a", 1000.0), ("shop-b", 1050.0)]
     assert lowest_offer(db, "l1")["price"] == 1000.0 and lowest_offer(db, "none") is None
 
@@ -118,9 +118,9 @@ def test_new_episode_after_the_price_rises_above_the_target(env):
     db, svc = env
     svc.save_watch(DEV, "l2", 700)
     svc.run_check(NOW)                                                            # 700 <= 700: alert 1
-    db.execute("INSERT INTO observations VALUES ('l2', 'shop-a', ?, 800.0)", (iso(0),)); db.commit()
+    db.execute("INSERT INTO observations (laptop_id, retailer, observed_at, price) VALUES ('l2', 'shop-a', ?, 800.0)", (iso(0),)); db.commit()
     assert svc.run_check(NOW)["reset"] == 1                                       # price above target: the episode ends
-    db.execute("INSERT INTO observations VALUES ('l2', 'shop-a', ?, 650.0)", ((NOW + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M"),)); db.commit()
+    db.execute("INSERT INTO observations (laptop_id, retailer, observed_at, price) VALUES ('l2', 'shop-a', ?, 650.0)", ((NOW + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M"),)); db.commit()
     assert svc.run_check(NOW + timedelta(hours=2))["alerted"] == 1
     assert len(svc.list_alerts(DEV)) == 2
 

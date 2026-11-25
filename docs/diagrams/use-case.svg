@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 1260" width="1900" height="1260" font-family="Helvetica, Arial, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#222"/></marker>
+<style>.t{font-weight:700;fill:#111}.d{font-style:italic;fill:#333;font-size:17px}.st{font-size:12px;fill:#222;font-style:normal}.lbl{font-size:12px;font-weight:700;fill:#111}</style>
+</defs>
+<rect width="1900" height="1260" fill="#fff"/>
+<text x="950.0" y="52" text-anchor="middle" font-size="46" font-weight="800" fill="#0E0E3A">Smart Shopping – Use Case Diagram</text>
+<rect x="690.0" y="72" width="520" height="40" rx="20" fill="#E6E3FA"/><text x="950.0" y="99" text-anchor="middle" font-size="22" fill="#222">AACC course project · Laptop price advisor</text>
+<line x1="430.0" y1="92" x2="650.0" y2="92" stroke="#9A8CF0" stroke-width="3"/><line x1="1250.0" y1="92" x2="1470.0" y2="92" stroke="#9A8CF0" stroke-width="3"/>
+<rect x="200" y="140" width="1440" height="1065" rx="22" fill="#F7F7FD" stroke="#7A7A9A" stroke-width="3"/>
+<path d="M200,162 a22,22 0 0 1 22,-22 h1396 a22,22 0 0 1 22,22 v38 h-1440 z" fill="#DAD8F2"/>
+<text x="920.0" y="185" text-anchor="middle" font-size="32" font-weight="700" fill="#111">Smart Shopping System</text>
+<g transform="translate(655,150)" fill="none" stroke="#111" stroke-width="3"><path d="M0,5 h8 l7,22 h24 l5,-16 h-33"/><circle cx="18" cy="35" r="3"/><circle cx="36" cy="35" r="3"/></g>
+<rect x="220" y="205" width="1400" height="200" rx="20" fill="#DCEBFF"/>
+<rect x="220" y="420" width="1400" height="330" rx="20" fill="#FFE4CF"/>
+<rect x="220" y="765" width="1400" height="200" rx="20" fill="#DDF5DD"/>
+<rect x="220" y="980" width="1400" height="200" rx="20" fill="#EADFFB"/>
+<path d="M109.4,503.6 H150 V303.0 H688" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,503.6 H150 V518.0 H688" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,503.6 H150 V688 H520" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,503.6 H150 V730 H1050 L1058,716" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,793.6 H168 V740 H1110 L1112,717" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,793.6 H168 V851.0 H687" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,793.6 H168 V1066.0 H687" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,1033.6 H186 V877.0 H687" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M109.4,1033.6 H186 V1092.0 H687" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M860,925.0 V960 H1715 V838.6 H1746" fill="none" stroke="#222" stroke-width="1.8"/>
+<path d="M860,1140.0 V1175 H1715 V1073.6 H1746" fill="none" stroke="#222" stroke-width="1.8"/>
+<rect x="258" y="215" width="250" height="40" rx="20" fill="#0B4DA8"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><circle cx="283" cy="231" r="8"/><line x1="289" y1="237" x2="297" y2="245"/></g><text x="312" y="242" font-size="21" font-weight="700" fill="#fff">Discovery</text>
+<text x="278" y="280" class="d" stroke="#DCEBFF" stroke-width="5" paint-order="stroke">find relevant</text><text x="278" y="302" class="d" stroke="#DCEBFF" stroke-width="5" paint-order="stroke">laptops and compare</text><text x="278" y="324" class="d" stroke="#DCEBFF" stroke-width="5" paint-order="stroke">options across shops</text>
+<line x1="530" y1="225" x2="530" y2="385" stroke="#1F5FBF" stroke-opacity=".35"/>
+<path d="M1028,289.5 C1140,289.5 1120,237.0 1232,237.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="232.0" class="lbl" text-anchor="middle" stroke="#DCEBFF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="237.0" rx="186" ry="17" fill="#EEF5FF" stroke="#1F5FBF" stroke-width="2.4"/><text x="1420" y="242.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Search and filter laptops</text>
+<path d="M1028,298.5 C1140,298.5 1120,281.0 1232,281.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="276.0" class="lbl" text-anchor="middle" stroke="#DCEBFF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="281.0" rx="186" ry="17" fill="#EEF5FF" stroke="#1F5FBF" stroke-width="2.4"/><text x="1420" y="286.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Sort results</text>
+<path d="M1028,307.5 C1140,307.5 1120,325.0 1232,325.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="320.0" class="lbl" text-anchor="middle" stroke="#DCEBFF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="325.0" rx="186" ry="17" fill="#EEF5FF" stroke="#1F5FBF" stroke-width="2.4"/><text x="1420" y="330.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Compare up to three laptops</text>
+<path d="M1028,316.5 C1140,316.5 1120,369.0 1232,369.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="364.0" class="lbl" text-anchor="middle" stroke="#DCEBFF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="369.0" rx="186" ry="17" fill="#EEF5FF" stroke="#1F5FBF" stroke-width="2.4"/><text x="1420" y="374.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">View offers with source, freshness</text>
+<ellipse cx="860" cy="303.0" rx="175" ry="62" fill="#EEF5FF" stroke="#1F5FBF" stroke-width="3.2"/>
+<text x="860" y="299.0" text-anchor="middle" font-size="21" class="t">UC1 – Find &amp;</text><text x="860" y="323.0" text-anchor="middle" font-size="21" class="t">Compare Laptop Offers</text>
+<rect x="258" y="430" width="250" height="40" rx="20" fill="#D9650B"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><line x1="278" y1="460" x2="278" y2="452"/><line x1="287" y1="460" x2="287" y2="442"/><line x1="296" y1="460" x2="296" y2="448"/></g><text x="312" y="457" font-size="21" font-weight="700" fill="#fff">Analysis &amp; Advice</text>
+<text x="278" y="495" class="d" stroke="#FFE4CF" stroke-width="5" paint-order="stroke">understand whether</text><text x="278" y="517" class="d" stroke="#FFE4CF" stroke-width="5" paint-order="stroke">the current offer is</text><text x="278" y="539" class="d" stroke="#FFE4CF" stroke-width="5" paint-order="stroke">genuinely good, and</text><text x="278" y="561" class="d" stroke="#FFE4CF" stroke-width="5" paint-order="stroke">what to do about it</text>
+<line x1="530" y1="440" x2="530" y2="730" stroke="#E07A1F" stroke-opacity=".35"/>
+<path d="M1028,504.5 C1140,504.5 1120,452.0 1232,452.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="447.0" class="lbl" text-anchor="middle" stroke="#FFE4CF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="452.0" rx="186" ry="17" fill="#FFF2E6" stroke="#E07A1F" stroke-width="2.4"/><text x="1420" y="457.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">View 30-day history, reference</text>
+<path d="M1028,513.5 C1140,513.5 1120,496.0 1232,496.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="491.0" class="lbl" text-anchor="middle" stroke="#FFE4CF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="496.0" rx="186" ry="17" fill="#FFF2E6" stroke="#E07A1F" stroke-width="2.4"/><text x="1420" y="501.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Inspect discount evidence</text>
+<path d="M1028,522.5 C1140,522.5 1120,540.0 1232,540.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="535.0" class="lbl" text-anchor="middle" stroke="#FFE4CF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="540.0" rx="186" ry="17" fill="#FFF2E6" stroke="#E07A1F" stroke-width="2.4"/><text x="1420" y="545.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">View stored 7-day forecast and age</text>
+<path d="M1028,531.5 C1140,531.5 1120,584.0 1232,584.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="579.0" class="lbl" text-anchor="middle" stroke="#FFE4CF" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="584.0" rx="186" ry="17" fill="#FFF2E6" stroke="#E07A1F" stroke-width="2.4"/><text x="1420" y="589.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Get Buy Now / Wait advice</text>
+<ellipse cx="860" cy="518.0" rx="175" ry="62" fill="#FFF2E6" stroke="#E07A1F" stroke-width="3.2"/>
+<text x="860" y="514.0" text-anchor="middle" font-size="21" class="t">UC2 – Assess Price</text><text x="860" y="538.0" text-anchor="middle" font-size="21" class="t">&amp; Get Advice</text>
+<rect x="258" y="775" width="250" height="40" rx="20" fill="#1F7A1F"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><ellipse cx="287" cy="788" rx="10" ry="4"/><path d="M277,788 v14 a10,4 0 0 0 20,0 v-14"/><path d="M277,795 a10,4 0 0 0 20,0"/></g><text x="312" y="802" font-size="21" font-weight="700" fill="#fff">Data Maintenance</text>
+<text x="278" y="840" class="d" stroke="#DDF5DD" stroke-width="5" paint-order="stroke">keep dated,</text><text x="278" y="862" class="d" stroke="#DDF5DD" stroke-width="5" paint-order="stroke">attributable price</text><text x="278" y="884" class="d" stroke="#DDF5DD" stroke-width="5" paint-order="stroke">observations</text>
+<line x1="530" y1="785" x2="530" y2="945" stroke="#2E8B2E" stroke-opacity=".35"/>
+<path d="M1028,849.5 C1140,849.5 1120,797.0 1232,797.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="792.0" class="lbl" text-anchor="middle" stroke="#DDF5DD" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="797.0" rx="186" ry="17" fill="#EEFAEE" stroke="#2E8B2E" stroke-width="2.4"/><text x="1420" y="802.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Fetch approved batch</text>
+<path d="M1028,858.5 C1140,858.5 1120,841.0 1232,841.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="836.0" class="lbl" text-anchor="middle" stroke="#DDF5DD" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="841.0" rx="186" ry="17" fill="#EEFAEE" stroke="#2E8B2E" stroke-width="2.4"/><text x="1420" y="846.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Validate and normalize records</text>
+<path d="M1028,867.5 C1140,867.5 1120,885.0 1232,885.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="880.0" class="lbl" text-anchor="middle" stroke="#DDF5DD" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="885.0" rx="186" ry="17" fill="#EEFAEE" stroke="#2E8B2E" stroke-width="2.4"/><text x="1420" y="890.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Upsert without duplicates</text>
+<path d="M1028,876.5 C1140,876.5 1120,929.0 1232,929.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="924.0" class="lbl" text-anchor="middle" stroke="#DDF5DD" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="929.0" rx="186" ry="17" fill="#EEFAEE" stroke="#2E8B2E" stroke-width="2.4"/><text x="1420" y="934.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Publish price.changed, queue job</text>
+<ellipse cx="860" cy="863.0" rx="175" ry="62" fill="#EEFAEE" stroke="#2E8B2E" stroke-width="3.2"/>
+<text x="860" y="859.0" text-anchor="middle" font-size="21" class="t">UC3 – Maintain</text><text x="860" y="883.0" text-anchor="middle" font-size="21" class="t">Price Data</text>
+<rect x="258" y="990" width="250" height="40" rx="20" fill="#6A2DB8"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M289,998 l-10,13 h8 l-3,10 l11,-14 h-8 z" fill="#fff"/></g><text x="312" y="1017" font-size="21" font-weight="700" fill="#fff">Energy Adaptation</text>
+<text x="278" y="1055" class="d" stroke="#EADFFB" stroke-width="5" paint-order="stroke">react to carbon</text><text x="278" y="1077" class="d" stroke="#EADFFB" stroke-width="5" paint-order="stroke">intensity, electricity</text><text x="278" y="1099" class="d" stroke="#EADFFB" stroke-width="5" paint-order="stroke">price and renewables</text>
+<line x1="530" y1="1000" x2="530" y2="1160" stroke="#7B3FC6" stroke-opacity=".35"/>
+<path d="M1028,1064.5 C1140,1064.5 1120,1012.0 1232,1012.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="1007.0" class="lbl" text-anchor="middle" stroke="#EADFFB" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="1012.0" rx="186" ry="17" fill="#F5EEFD" stroke="#7B3FC6" stroke-width="2.4"/><text x="1420" y="1017.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Sense carbon, price, renewable</text>
+<path d="M1028,1073.5 C1140,1073.5 1120,1056.0 1232,1056.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="1051.0" class="lbl" text-anchor="middle" stroke="#EADFFB" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="1056.0" rx="186" ry="17" fill="#F5EEFD" stroke="#7B3FC6" stroke-width="2.4"/><text x="1420" y="1061.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Decide mode GREEN/AMBER/RED</text>
+<path d="M1028,1082.5 C1140,1082.5 1120,1100.0 1232,1100.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="1095.0" class="lbl" text-anchor="middle" stroke="#EADFFB" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="1100.0" rx="186" ry="17" fill="#F5EEFD" stroke="#7B3FC6" stroke-width="2.4"/><text x="1420" y="1105.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Change behaviour (jobs, AI, batches)</text>
+<path d="M1028,1091.5 C1140,1091.5 1120,1144.0 1232,1144.0" fill="none" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="1135" y="1139.0" class="lbl" text-anchor="middle" stroke="#EADFFB" stroke-width="4" paint-order="stroke">«include»</text>
+<ellipse cx="1420" cy="1144.0" rx="186" ry="17" fill="#F5EEFD" stroke="#7B3FC6" stroke-width="2.4"/><text x="1420" y="1149.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111">Relocate flexible workloads</text>
+<ellipse cx="860" cy="1078.0" rx="175" ry="62" fill="#F5EEFD" stroke="#7B3FC6" stroke-width="3.2"/>
+<text x="860" y="1074.0" text-anchor="middle" font-size="21" class="t">UC4 – Adapt to Carbon &amp;</text><text x="860" y="1098.0" text-anchor="middle" font-size="21" class="t">Energy-Price Conditions</text>
+<path d="M720,658 L804.0,578.0" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)" fill="none"/>
+<text x="739.0" y="618.0" class="lbl" text-anchor="end" stroke="#FFE4CF" stroke-width="4" paint-order="stroke">«extend»</text>
+<ellipse cx="720" cy="688" rx="200" ry="30" fill="#FFF2E6" stroke="#E07A1F" stroke-width="2.4" stroke-dasharray="7 4"/><text x="720" y="684" text-anchor="middle" font-size="15" class="t">UC2 extension</text><text x="720" y="703" text-anchor="middle" font-size="15" class="t">Explain the advice (AI assistant)</text>
+<path d="M1150,658 L976.0,578.0" stroke="#222" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)" fill="none"/>
+<text x="1093.5" y="618.0" class="lbl" text-anchor="start" stroke="#FFE4CF" stroke-width="4" paint-order="stroke">«extend»</text>
+<ellipse cx="1150" cy="688" rx="200" ry="30" fill="#FFF2E6" stroke="#E07A1F" stroke-width="2.4" stroke-dasharray="7 4"/><text x="1150" y="684" text-anchor="middle" font-size="15" class="t">UC2 extension</text><text x="1150" y="703" text-anchor="middle" font-size="15" class="t">Watch a price (in-app alerts)</text>
+<g stroke="#222" stroke-width="2.6" fill="#E4E4F4"><circle cx="80" cy="470" r="18.2"/><line x1="80" y1="488.2" x2="80" y2="529.5"/><line x1="50.6" y1="503.6" x2="109.4" y2="503.6"/><line x1="80" y1="529.5" x2="56.2" y2="559.6"/><line x1="80" y1="529.5" x2="103.8" y2="559.6"/></g><text x="80" y="583.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">Shopper</text>
+<g stroke="#222" stroke-width="2.6" fill="#E4E4F4"><circle cx="80" cy="760" r="18.2"/><line x1="80" y1="778.2" x2="80" y2="819.5"/><line x1="50.6" y1="793.6" x2="109.4" y2="793.6"/><line x1="80" y1="819.5" x2="56.2" y2="849.6"/><line x1="80" y1="819.5" x2="103.8" y2="849.6"/></g><text x="80" y="733.8" text-anchor="middle" font-size="14" font-style="italic" fill="#333">«system»</text><text x="80" y="873.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">Time Trigger</text>
+<g stroke="#222" stroke-width="2.6" fill="#E4E4F4"><circle cx="80" cy="1000" r="18.2"/><line x1="80" y1="1018.2" x2="80" y2="1059.5"/><line x1="50.6" y1="1033.6" x2="109.4" y2="1033.6"/><line x1="80" y1="1059.5" x2="56.2" y2="1089.6"/><line x1="80" y1="1059.5" x2="103.8" y2="1089.6"/></g><text x="80" y="1113.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">System</text><text x="80" y="1134.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">Operator</text>
+<g stroke="#222" stroke-width="2.6" fill="#E4E4F4"><circle cx="1775" cy="805" r="18.2"/><line x1="1775" y1="823.2" x2="1775" y2="864.5"/><line x1="1745.6" y1="838.6" x2="1804.4" y2="838.6"/><line x1="1775" y1="864.5" x2="1751.2" y2="894.6"/><line x1="1775" y1="864.5" x2="1798.8" y2="894.6"/></g><text x="1775" y="778.8" text-anchor="middle" font-size="14" font-style="italic" fill="#333">«external»</text><text x="1775" y="918.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">Price Data</text><text x="1775" y="939.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">Provider</text>
+<g stroke="#222" stroke-width="2.6" fill="#E4E4F4"><circle cx="1775" cy="1040" r="18.2"/><line x1="1775" y1="1058.2" x2="1775" y2="1099.5"/><line x1="1745.6" y1="1073.6" x2="1804.4" y2="1073.6"/><line x1="1775" y1="1099.5" x2="1751.2" y2="1129.6"/><line x1="1775" y1="1099.5" x2="1798.8" y2="1129.6"/></g><text x="1775" y="1013.8" text-anchor="middle" font-size="14" font-style="italic" fill="#333">«external»</text><text x="1775" y="1153.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">Energy Signal</text><text x="1775" y="1174.6" text-anchor="middle" font-size="18" font-weight="700" fill="#111">Provider</text>
+</svg>

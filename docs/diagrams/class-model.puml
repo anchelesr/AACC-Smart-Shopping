@@ -1,51 +1,173 @@
 @startuml
-title Smart Shopping - Conceptual Relational Data Model
+title Smart Shopping - Conceptual Data Model
 skinparam shadowing false
 skinparam backgroundColor white
-class Product {
-  id: PK
-  sku: UNIQUE
-  brand: String
-  model: String
-  specifications: JSONB
+skinparam dpi 120
+skinparam classBackgroundColor #FFF4F4
+skinparam classBorderColor #B52330
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #555555
+hide empty methods
+
+package "Prices and forecasts" {
+  class Product {
+    id : PK
+    sku : UNIQUE
+    brand, model
+    specifications : JSONB
+  }
+  class Retailer {
+    id : PK
+    name : UNIQUE
+    defaultCurrency
+  }
+  class PriceObservation {
+    id : PK
+    productId, retailerId : FK
+    amount, currency
+    observedAt : UTC
+    sourceProvenance
+  }
+  class RawBatch {
+    id : PK
+    sourceId, receivedAt
+    checksum, payload (as received)
+  }
+  class ImportRun {
+    id : PK
+    sourceId, startedAt
+    rawBatchId : FK
+    accepted, rejected
+    rejectReasons : JSONB
+  }
+  class ForecastRun {
+    id : PK
+    productId : FK
+    forecast7Days : JSONB
+    modelId : FK
+    generatedAt, status
+    shadow : bool (never shown)
+    realisedMae (filled when prices arrive)
+  }
+  class DriftCheck {
+    id : PK
+    productId : FK
+    referenceWindow, currentWindow
+    score, shape, checkedAt
+  }
 }
-class Retailer {
-  id: PK
-  name: UNIQUE
-  defaultCurrency: String
+
+package "Price watch" {
+  class Watch {
+    id : PK
+    deviceId : random, pseudonymous
+    productId : FK
+    targetPrice
+    enabled, alerted, episode
+    UNIQUE (deviceId, productId)
+  }
+  class Alert {
+    id : PK
+    watchId : FK
+    price, retailer, observedAt
+    dedupKey : UNIQUE (watchId:episode)
+    createdAt, readAt
+  }
+  class WatchCheck {
+    runAt
+    checked, alerted, skipped
+  }
 }
-class PriceObservation {
-  id: PK
-  productId: FK
-  retailerId: FK
-  amount: Decimal
-  currency: String
-  observedAt: UTC
-  sourceProvenance: String
+
+package "Models" {
+  class ModelRegistryEntry {
+    modelId : PK
+    kind : BASELINE or PRETRAINED
+    version, active
+  }
+  class ModelEvaluation {
+    id : PK
+    modelId : FK
+    window, mae, mape
+    evaluatedAt, adopted
+  }
 }
-class ForecastRun {
-  id: PK
-  productId: FK
-  forecast7Days: JSONB
-  modelVersion: String
-  generatedAt: UTC
-  status: String
+
+package "Jobs, energy signals and placement" {
+  class ForecastJob {
+    id : PK
+    productId : FK
+    deadlineAt (never reset)
+    state, nextCheckAt, leaseUntil
+  }
+  class JobExecutionLog {
+    id : PK
+    jobId : FK
+    decision, reason, mode
+    intensity, energyKWh, estimatedGCO2e
+  }
+  class EnergySample {
+    id : PK
+    observedAt
+    intensityGCO2ePerKWh
+    priceEurPerKWh
+    renewableAvailable
+    source : SIMULATED or LIVE
+    status : OK or MISSING
+  }
+  class PlacementDecision {
+    id : PK
+    mode, targetPool
+    reason, decidedAt
+    outcome : APPLIED or SKIPPED_UNSAFE
+  }
+  class PolicyVersion {
+    id : PK
+    intensityThresholds, priceThresholds
+    hysteresisMargin, deadlineHours, staleLimit
+    placementDwellMinutes
+    createdBy, createdAt
+  }
+  class OperatingModeState {
+    id : PK
+    mode : GREEN, AMBER, RED
+    reason, since
+    policyVersionId : FK
+    overrideUntil
+  }
 }
-class JobExecutionLog {
-  id: PK
-  jobKey: UNIQUE
-  deadlineAt: UTC
-  status: String
-  gridIntensity: Decimal
-  energyKWh: Decimal
-  estimatedGCO2e: Decimal
+
+package "Assistant" {
+  class AssistantTrace {
+    requestId : PK
+    route, modelId, promptVersion
+    tokensIn, tokensOut, latencyMs
+    guardrailResult, flagged
+    estimatedEnergyWh, mode
+  }
+  class ReviewItem {
+    id : PK
+    traceId : FK
+    status, reviewer, decision
+  }
 }
+
 Product "1" -- "0..*" PriceObservation
 Retailer "1" -- "0..*" PriceObservation
 Product "1" -- "0..*" ForecastRun
-Product "1" -- "0..*" JobExecutionLog
+ModelRegistryEntry "1" -- "0..*" ForecastRun
+ModelRegistryEntry "1" -- "0..*" ModelEvaluation
+Product "1" -- "0..*" DriftCheck
+Product "1" -- "0..*" Watch
+Watch "1" -- "0..*" Alert
+RawBatch "1" -- "0..*" ImportRun
+Product "1" -- "0..*" ForecastJob
+ForecastJob "1" -- "0..*" JobExecutionLog
+PolicyVersion "1" -- "0..*" OperatingModeState
+AssistantTrace "1" -- "0..1" ReviewItem
+
 note right of PriceObservation
- UNIQUE(productId, retailerId,
- observedAt, sourceProvenance)
+  UNIQUE (productId, retailerId,
+  observedAt, sourceProvenance)
 end note
 @enduml

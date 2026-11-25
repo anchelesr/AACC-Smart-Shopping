@@ -64,6 +64,17 @@ The course expects every exercise to be done with documented AI use: the prompt,
 | Decisions the tool made and the authors must confirm | Server-side watch (ADR-017); keeping the project's behaviour for an unavailable carbon signal; brand list as the only "preference"; no claim about NASA standards because none was identified. |
 | Reflection (what suited AI, what did not) | Authors to complete. |
 
+## Entry 1f - Revision 7: replacement of the diagrams (25 November 2026)
+
+| Item | Record |
+| --- | --- |
+| Tool and model | Claude, configured as `claude-sonnet-5-5` (serving model to be confirmed by the authors). |
+| Task | Draw the sequence diagrams in the style of the supplied zip with the project's components, add a communication diagram and a component diagram, redraw the supplied use-case figure so that it fits the project, replace the old diagrams in the repository, README and PDF, and move the comments below the images into the text. |
+| What AI produced | The nine PlantUML diagrams `01` to `09`, the generator of the use-case figure, the edits of the documents and `sync-report.md` (section "Revision 7"). |
+| Checks done on the output | Syntax check of all PlantUML files, rendering and visual inspection of the images, message numbers in the text recomputed from the sources, links checked. The use-case figure was inspected visually only. |
+| Decisions the tool made and the authors must confirm | The three detailed carbon sequences are kept next to the new overview; the content of the new use-case figure (four use cases in four bands, two extensions of UC2); the new sequences are condensed and omit telemetry calls. |
+| Reflection (what suited AI, what did not) | Authors to complete. |
+
 ## Entry 2 - Comparison required by the course
 
 For each exercise the course asks for three versions and a comparison: (1) done without AI, (2) done with AI and an initial prompt, (3) done with AI and an improved prompt. The tool cannot supply version 1 or the authors' judgement.
@@ -78,3 +89,31 @@ For each exercise the course asks for three versions and a comparison: (1) done 
 ## Entry 3 - Revision 1
 
 Authors to complete: the tool, model and prompts used for the first revision, if any.
+
+## Entry 4 - Revision 8: implementation of the shopper path and the control loop (25 November 2026)
+
+| Item | Record |
+| --- | --- |
+| Tool and model | Claude, configured as `claude-sonnet-5-5` (the serving model may differ; the authors should confirm). |
+| Task | Implement the REST API and frontend, Carbon Monitor and Policy Engine, Job Scheduler, Forecast Worker and Model Evaluator, Placement Controller, LLM Gateway with router, guardrails and a local model, price import and PostgreSQL, with tests, and update the documents. |
+| Prompt (summary) | The authors confirmed the recommended proposals and listed the six areas above. |
+| What the tool produced | The modules and tests listed in [implementation status](implementation.md), the PostgreSQL manifest, a workflow, and the documentation changes of revision 8. |
+| What was checked by running | The test suite on SQLite and on a real PostgreSQL 16 server, the application over HTTP, and the frontend once in Chromium. Not run: Kafka integration tests, manifests, GitHub workflows, the `kubectl` and model HTTP adapters against real systems. |
+| Decisions the tool took (candidate, concurrency, stand-in model, in-process cache, operator token confirmed by the authors on 25 November 2026; the rest not yet reviewed) | The forecast candidate (damped Holt, [ADR-008](adr/ADR-008.md) addendum); concurrency as jobs started per tick; a deterministic stand-in instead of a language model as the default local model; in-process cache and memory; one static operator token; the sixteen differences in [implementation status](implementation.md). |
+| Errors found and fixed during the work | A deferral clock of the optional backfill was reset by the mandatory daily import (found by a test, fixed); test expectations that assumed parallel job execution were corrected after the behaviour was reviewed; a repeated identical deferral flooded the job log (deduplicated). |
+| Reflection | Authors to complete: what the tool did well and badly, what had to be corrected, and what was changed by hand. |
+
+## Entry 5 - Revision 9: final project, deployment and operation (25 November 2026)
+
+| Item | Record |
+| --- | --- |
+| Tool and model | Claude, configured as `claude-sonnet-5-5` (the serving model may differ; the authors should confirm). |
+| Task | From the screenshots of the final-project assignment: make the system deployable and operable (container, Kubernetes, CI/CD, observability, carbon metrics, dynamic redeployment and model exchange) and prepare the video script. The authors first asked for a prompt for this work, then asked the tool to execute it phase by phase on the existing code. |
+| Prompt (summary) | A phased prompt (environment check, running system, CI/CD, observability, carbon metrics, dynamic behaviour, video, close-out) written by the tool at the authors' request; the authors chose Kustomize, the Kubernetes REST API for the controller, Ollama with a small model and labelled estimates. |
+| What the tool produced | The files listed in the [synchronisation report](sync-report.md) (revision 9). |
+| What was checked by running | Tests on SQLite and PostgreSQL 16, three real processes, the container image on a local base, `kustomize`, `kubeconform`, `promtool`, `actionlint`, `yamllint`, `shellcheck`, the shell helpers against a live server, the carbon experiment twice. Not run: anything on a cluster, GitHub Actions, GHCR, Ollama. |
+| Decisions the tool took without confirmation | Roles as separate Deployments instead of Jobs and CronJobs; the worker as the movable workload; metrics derived from the database at scrape time; a demonstration-only controllable signal; the model names `qwen2.5:1.5b` and `qwen2.5:0.5b`; moving `postgres.yaml`; reporting the experiment for two traces. The authors have not reviewed these. |
+| Errors found and fixed during the work | See the sync report: a thread-bound event store (fixed), a shadowed function (fixed), an experiment that first compared different numbers of jobs and mixed the effect of timing with the assumed pool power (reported separately now), a start time of the experiment before the last seeded observation (fixed). |
+| Finding that is unfavourable to the design | With the default simulator the adaptive scheduler emits about 11 % more per job than immediate execution (0.7 % higher carbon intensity at job start), because the renewable window lies on the carbon peak. It is reported, not hidden. |
+| Reflection | Authors to complete: what the tool did well and badly, what had to be corrected, and what was changed by hand. |
+

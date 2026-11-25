@@ -1,0 +1,13 @@
+Final Project submission - Smart Shopping (AI Architecture and Cloud Computing)
+
+Authors: Linda Vincelova, Angelika Rischanekova
+GitHub repository: https://github.com/anchelesr/AACC-Smart-Shopping
+
+Where to look
+  Running system:            README.md ("Run the application"), deploy/README.md, scripts/demo-up.sh, scripts/smoke.sh
+  CI/CD pipeline:            .github/workflows/ci-cd.yml
+  Observability/monitoring:  deploy/k8s/monitoring, src/shopping/metrics.py
+  Carbon metrics:            docs/carbon-experiment.md, scripts/carbon_experiment.py
+  Dynamic behaviour:         src/shopping/placement.py (node taints), src/shopping/llm/providers.py (model exchange), scripts/demo-scenario.sh
+  Video script:              docs/video-script.md
+  What exists and what was verified: docs/implementation.md ("Final project requirements: status")

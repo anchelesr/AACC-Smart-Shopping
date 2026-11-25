@@ -1,0 +1,55 @@
+groups:
+  - name: shopping-energy-adaptation
+    rules:
+      - alert: EnergyModeRed
+        expr: max(shopping_operating_mode{mode="RED"}) == 1
+        for: 1m
+        labels: {severity: info}
+        annotations: {summary: "Operating mode RED: non-urgent work waits and the assistant answers from templates"}
+      - alert: ForecastJobsOverdue
+        expr: max(shopping_forecast_jobs_overdue) > 0
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "A forecast job is past its 24 h deadline (the deadline must win in every mode)"}
+      - alert: EnergySignalStale
+        expr: max(shopping_signal_age_seconds) > 1800
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "No fresh energy signal for 30 minutes: the system has fallen back to GREEN"}
+      - alert: PlacementFailing
+        expr: increase(shopping_placement_decisions_total{outcome="failed"}[10m]) > 0
+        for: 0m
+        labels: {severity: warning}
+        annotations: {summary: "The Placement Controller could not change a node taint"}
+      - alert: ForecastModelWorseThanBaseline
+        expr: max(shopping_model_worse_streak) >= 3
+        for: 0m
+        labels: {severity: warning}
+        annotations: {summary: "The active forecast model was worse than the baseline three times"}
+      - alert: ReviewQueueGrowing
+        expr: max(shopping_review_queue_pending) > 10
+        for: 30m
+        labels: {severity: info}
+        annotations: {summary: "More than 10 assistant answers wait for an operator decision"}
+  - name: shopping-availability
+    rules:
+      - alert: DatabaseDown
+        expr: min(shopping_database_up) == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "A shopping process cannot reach the database"}
+      - alert: TargetDown
+        expr: up{job="shopping"} == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "A shopping pod does not answer the scrape"}
+      - alert: ApiHighErrorRate
+        expr: sum(rate(shopping_http_request_duration_seconds_count{status="5xx"}[5m])) / sum(rate(shopping_http_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "More than 5 % of API requests fail with a 5xx status"}
+      - alert: ApiSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(shopping_http_request_duration_seconds_bucket{route!="/metrics"}[5m]))) > 1
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "95th percentile of API latency is above one second"}

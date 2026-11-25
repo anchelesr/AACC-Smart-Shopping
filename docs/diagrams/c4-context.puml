@@ -37,6 +37,6 @@ SYS --> K8S : taints, workload placement
 
 legend bottom
   C4 context view: the system as one box with its users and the external systems it depends on.
-  Containers are shown in c4-container.puml; components in component-model.puml.
+  Containers are shown in c4-container.puml; components in 09-component.puml.
 endlegend
 @enduml

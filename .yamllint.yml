@@ -1,0 +1,9 @@
+extends: relaxed
+rules:
+  line-length: disable
+  braces: {max-spaces-inside: 0, max-spaces-inside-empty: 0}
+  comments: disable
+  comments-indentation: disable
+  document-start: disable
+  truthy: disable
+  indentation: {spaces: consistent, indent-sequences: consistent}

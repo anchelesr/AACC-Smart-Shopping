@@ -1,40 +1,92 @@
 @startuml
-title Smart Shopping - Proposed Kubernetes Deployment (Not Yet Running)
-left to right direction
+title Smart Shopping - Proposed Kubernetes Deployment (design, not a running cluster)
 skinparam shadowing false
 skinparam backgroundColor white
-node "Shopper Browser" as Browser
-node "Kubernetes Cluster / smart-shopping namespace" {
- node "Ingress Controller\nTLS" as Ingress
- node "Frontend Deployment\n2 proposed replicas" as Frontend
- node "Frontend Service" as FES
- node "API Deployment\n2-3 proposed replicas" as API
- node "API Service" as APIS
- node "Price Import CronJob\nconcurrencyPolicy: Forbid" as Import
- node "Carbon-Aware Forecast CronJob\nconcurrencyPolicy: Forbid" as Forecast
- database "PostgreSQL 16\nStatefulSet + PVC (demo)" as DB
- node "Prometheus and Grafana\nPrivate metrics" as Monitor
- node "ConfigMap + Kubernetes Secrets" as Config
+skinparam dpi 130
+skinparam nodesep 25
+skinparam ranksep 45
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 10
+skinparam node {
+  BorderColor #B52330
+  BackgroundColor #FFF4F4
 }
-cloud "Approved CSV / API" as Provider
-cloud "Simulated Grid Signal" as Signal
+skinparam database {
+  BorderColor #202025
+  BackgroundColor #EEEEEE
+}
+skinparam cloud {
+  BorderColor #777777
+  BackgroundColor #FFFFFF
+}
+skinparam LegendBackgroundColor #FAF5F5
+skinparam LegendBorderColor #B52330
+top to bottom direction
+
+node "Shopper / Operator Browser" as Browser #FFFFFF
+
+cloud "CI/CD\nGitHub Actions + container registry\nGitOps controller" as CICD
+cloud "External LLM Provider\n(large model, European provider preferred)" as LLM
+cloud "Approved price source\n(CSV or API)" as Src
+cloud "Electricity Maps API (optional, live)" as EMaps
+
+node "Kubernetes cluster - namespace smart-shopping" {
+  node "Ingress + TLS" as Ingress
+  node "Pool standard (fast, default)" as PS {
+    node "Frontend Deployment\n(Shopper Client, Operator Console)\n2 proposed replicas" as FE
+    node "Backend Deployment\nShopping API, Assistant Service,\nLLM Gateway, Policy admin, Watch Monitor\n2-3 proposed replicas (HPA)" as API
+    database "PostgreSQL 16\nStatefulSet + PVC (demo)" as DB
+    node "Kafka (KRaft, 1 broker)\ntopics price.changed, mode.changed,\nevents.dead" as EB
+    node "Prometheus + Grafana\n+ OpenTelemetry collector" as Mon
+  }
+  node "Controllers (CronJobs and one Deployment)" as CTL {
+    node "carbon-controller CronJob, every 5 min\nCarbon Monitor + Policy Engine evaluation" as CC
+    node "forecast-scheduler CronJob, every 15 min\nJob Scheduler (starts weekly evaluation Job)" as FSch
+    node "watch-check CronJob, every 30 min\nWatch Monitor (price watch alerts)" as WChk
+    node "price-import CronJob, daily\nPrice Importer (concurrencyPolicy Forbid)" as Imp
+    node "placement-controller Deployment (Helm chart)\nPlacement Controller" as PCd
+  }
+  node "Flexible workloads (steered by taints)" as FLEX {
+    node "Forecast Worker and Model Evaluation Jobs\nparallelism set by operating mode" as FWJ
+    node "Local Model Runtime Deployment\n(small open-weight model)" as LMRd
+  }
+  node "Pool eco (simulated low-carbon / low-price node group)" as PE
+  node "Energy Signal Simulator Deployment\nintensity, price, renewable flag,\nPrometheus metrics" as SIM
+  node "Kepler DaemonSet (pod energy metrics)" as Kep
+  node "ConfigMap (policy defaults)\nSecrets (credentials)" as Cfg
+}
+
 Browser --> Ingress : HTTPS
-Ingress --> FES
-FES --> Frontend
-Frontend --> APIS : JSON API
-APIS --> API
-API --> DB : Price and forecast queries
-Import --> Provider : Read prices
-Import --> DB : Validated upsert
-Forecast --> Signal : Read intensity
-Forecast --> DB : Due jobs and forecasts
-API ..> Monitor
-Import ..> Monitor
-Forecast ..> Monitor
-Config ..> API
-Config ..> Forecast
-note right of Forecast
-  24h deadline override is enforced by persisted state.
-  CronJob scheduling alone is not a carbon policy.
-end note
+Ingress --> FE
+Ingress --> API : /api
+API --> DB : SQL
+API --> LMRd : small model
+API --> LLM : large model
+CC --> SIM : read signals
+CC ..> EMaps : optional
+CC --> DB : samples, mode
+FSch --> FWJ : create Jobs
+FWJ --> DB : forecasts, logs
+Imp --> Src : fetch batches
+Imp --> DB : upsert
+WChk --> DB : alerts
+CTL --> EB : publish and\nsubscribe events
+EB --> API : mode.changed
+PCd --> FLEX : taints\n(evict, reschedule)
+FLEX ..> PE : AMBER, RED,\nrenewable
+CTL ..> Mon
+API ..> Mon
+FLEX ..> Mon
+Kep ..> Mon
+CICD --> API : image tags in Git,\nsynchronised
+
+legend bottom
+  Operating mode and policy live in the database and are read by every workload (no redeploy to change them);
+  the events only tell consumers earlier. The Placement Controller changes taints so flexible workloads move between pools
+  (standard pool in GREEN, eco pool in AMBER, RED or when renewable energy is available).
+  Topics: price.changed (Price Importer to Job Scheduler), mode.changed (Policy Engine to Job Scheduler, Gateway, Placement Controller).
+  ConfigMap (policy defaults) and Secrets (credentials) are mounted by the backend and the controllers.
+  The CronJobs only start work; carbon policy, deadlines and idempotency are enforced by persisted state.
+  concurrencyPolicy Forbid avoids overlapping runs but does not guarantee exactly-once execution.
+endlegend
 @enduml

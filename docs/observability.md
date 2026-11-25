@@ -71,7 +71,7 @@ Alerts have a policy, a channel and a description with a first action, and there
 | Alert | Condition | First action |
 | --- | --- | --- |
 | Forecasts too old | p95 forecast age above 24 h for 30 minutes | Check the job log and the scheduler; the deadline should have forced a run. |
-| Signal stale | No valid sample for more than the stale limit | Check the provider and the Energy Monitor; the system already runs as GREEN. |
+| Signal stale | No valid sample for more than the stale limit | Check the provider and the Carbon Monitor; the system already runs as GREEN. |
 | Mode flapping | More than four mode changes per hour | Review thresholds and hysteresis; use an override. |
 | Guardrail failures high | Template fallback share above an agreed limit for an hour | Inspect the review queue and the prompt version. |
 | Event lag | Consumer lag above a limit for 10 minutes | Check the consumer; the pull path keeps the system correct meanwhile. |
@@ -93,3 +93,7 @@ The comparison of the standard and the eco pool uses the same job on both pools:
 ## Availability and the SLO
 
 Availability is `MTTF / (MTTF + MTTR)`. The proposed service-level objective is an availability of 99.5 % per month for the shopper read path (NFR-17), which allows about 3.6 hours of downtime in a 30-day month; 99.9 % would allow about 43 minutes and 99.99 % about 4 minutes. A synthetic probe against `/health/ready` and one insights request every minute provides the measurement. A low MTTR is the practical lever: rolling updates, `kubectl rollout undo` and the GitOps revert make repair quick, while a rare failure with a long repair would still miss the objective.
+
+## What exists today (revision 9)
+
+`/metrics` ([`metrics.py`](../src/shopping/metrics.py)) exposes about 50 metric families in the Prometheus text format with `HELP` and `TYPE`. State shared by all processes is read from the database at scrape time (mode, placement target, signals and their age, job states, overdue jobs, scheduler decisions, active model, assistant routes and models, review queue, import runs, database availability); per-process data are the request latency histogram and `shopping_process_info{role,node,pod}`. Energy and emissions carry the word `estimated` in their names. [`deploy/k8s/monitoring`](../deploy/k8s/monitoring) holds the Prometheus configuration (pod discovery, bearer token from the operator secret), ten alert rules and a Grafana dashboard with 16 panels (mode, placement target, where the worker runs, signals, jobs, estimated energy and emissions, model by mode, router decisions, API latency and errors). They were validated with `promtool` and a parser and are tied to the code by a test; **they have not been run on a cluster**, and the dashboard has never been loaded into Grafana. Kepler, OpenTelemetry traces and a synthetic availability probe are still design only.

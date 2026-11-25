@@ -6,13 +6,13 @@ The first revision only read a carbon signal and deferred forecast jobs. The rev
 
 | Step | Component | What happens |
 | --- | --- | --- |
-| Sense | Energy Monitor | Every 5 minutes it fetches carbon intensity (gCO2e/kWh), electricity price (EUR/kWh) and a renewable-available flag, validates each value (range, timestamp) and stores the sample; a failed fetch is stored as MISSING. |
+| Sense | Carbon Monitor | Every 5 minutes it fetches carbon intensity (gCO2e/kWh), electricity price (EUR/kWh) and a renewable-available flag, validates each value (range, timestamp) and stores the sample; a failed fetch is stored as MISSING. |
 | Decide | Policy Engine | Every 5 minutes it classifies intensity and price separately against the active policy with hysteresis, takes the more restrictive class, lets available renewable energy force GREEN, applies any operator override and persists the *operating mode* with its reason, parameters and placement target. A mode change is published as an event. |
-| Act, layer 1: behaviour | Job Scheduler, Model Router, Price Importer, Model Evaluator, workers, caches | Each consumer reads `IOperatingMode.current()` (cached up to 60 s; the event only makes the change visible earlier) and changes how it works. Nobody except the Energy Monitor talks to the signal provider. |
+| Act, layer 1: behaviour | Job Scheduler, Model Router, Price Importer, Model Evaluator, workers, caches | Each consumer reads `IOperatingMode.current()` (cached up to 60 s; the event only makes the change visible earlier) and changes how it works. Nobody except the Carbon Monitor talks to the signal provider. |
 | Act, layer 2: placement | Placement Controller | Moves the *flexible* workloads between the standard and the eco node pool with taints. |
 | Feedback | Telemetry, job execution log | Mode changes, deferrals, placements, kWh and gCO2e are recorded; the operator compares them with an immediate-run baseline and may change the policy. |
 
-Sequences: [ASUC-04a](diagrams/previews/sequence-carbon-decide.png) (configure, sense, decide), [ASUC-04b](diagrams/previews/sequence-carbon-act.png) (act, feedback) and [ASUC-04c](diagrams/previews/sequence-carbon-place.png) (relocate flexible workloads). Decision logic: [activity diagram](diagrams/previews/carbon-policy-activity.png).
+Overview sequence: [06-carbon](diagrams/06-carbon.png). Detailed sequences: [ASUC-04a](diagrams/detail/sequence-carbon-decide.png) (configure, sense, decide), [ASUC-04b](diagrams/detail/sequence-carbon-act.png) (act, feedback) and [ASUC-04c](diagrams/detail/sequence-carbon-place.png) (relocate flexible workloads). Decision logic: [activity diagram](diagrams/previews/carbon-policy-activity.png).
 
 ![Operating-mode decision](diagrams/previews/carbon-policy-activity.png)
 

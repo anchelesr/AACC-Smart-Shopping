@@ -1,0 +1,62 @@
+@startuml
+title Monitor prices and trigger alerts (SQ-02)
+autonumber
+hide footbox
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+participant "Shopper" as P0 #edf1f5
+participant "Shopper Client" as P1 #eaf2ff
+participant "Shopping API" as P2 #fff3df
+participant "Watch Monitor" as P3 #fff3df
+participant "Data Store" as P4 #f3edff
+participant "Catalog Query" as P5 #fff3df
+participant "Time Trigger" as P6 #edf1f5
+P0 -> P1 : Select laptop and target price
+activate P1
+P1 -> P2 : saveWatch(deviceId, productId, targetPrice)
+activate P2
+P2 -> P3 : saveWatch(deviceId, productId, targetPrice)
+activate P3
+P3 -> P3 : Validate device id, laptop, positive target, max 20 watches per device
+P3 -> P4 : Upsert watch (new target starts a new alert episode)
+P4 --> P3 : Watch saved
+P3 --> P2 : Confirmation
+deactivate P3
+P2 --> P1 : Active watch
+deactivate P2
+P1 --> P0 : Show active watch
+deactivate P1
+P6 -> P3 : checkWatches() every 30 minutes
+activate P3
+P3 -> P4 : Read enabled watches
+P4 --> P3 : Watches with alert state
+loop each enabled watch
+P3 -> P5 : getCurrentOffers(productId)
+P5 --> P3 : Latest offer per retailer with observedAt
+P3 -> P3 : Take lowest comparable offer; check age against 48 h limit
+alt fresh offer at or below target and no alert in this episode
+P3 -> P4 : Set alerted and store alert with deduplication key (one transaction)
+P4 --> P3 : Alert stored / already exists
+else fresh offer above target after an earlier alert
+P3 -> P4 : End the episode
+else stale, missing or target not reached
+P3 -> P3 : Skip; nothing created or reset
+end
+end
+P3 --> P6 : Check outcome (checked, alerted, skipped)
+deactivate P3
+P0 -> P1 : Open application / alerts
+activate P1
+P1 -> P2 : getAlerts(deviceId)
+activate P2
+P2 -> P3 : listAlerts(deviceId)
+activate P3
+P3 -> P4 : Load alerts of this device
+P4 --> P3 : Alerts
+P3 --> P2 : Alert list
+deactivate P3
+P2 --> P1 : Alert list
+deactivate P2
+P1 --> P0 : Display in-app notifications
+deactivate P1
+@enduml

@@ -26,7 +26,7 @@ actor Operator
 rectangle "Smart Shopping" {
   rectangle "Web Frontend\n[container]\nShopper Client, Operator Console" as FE
   rectangle "Backend\n[container, modular]\nShopping API, Assistant Service,\nLLM Gateway, Policy admin,\nWatch Monitor (watchlist)" as BE
-  rectangle "Controllers\n[CronJobs]\nEnergy Monitor + Policy Engine,\nJob Scheduler, Price Importer,\nWatch Monitor (price check)" as CTL
+  rectangle "Controllers\n[CronJobs]\nCarbon Monitor + Policy Engine,\nJob Scheduler, Price Importer,\nWatch Monitor (price check)" as CTL
   rectangle "Placement Controller\n[container]" as PC
   rectangle "Forecast Workers and Evaluation\n[Jobs]\nForecast Worker, Model Evaluator,\nForecast Model Adapter" as WK
   rectangle "Local Model Runtime\n[container]\nsmall open-weight model" as LM

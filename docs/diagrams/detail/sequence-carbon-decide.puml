@@ -1,0 +1,82 @@
+@startuml
+title ASUC-04a - Adapt to energy conditions: configure, sense and decide (UC4)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor "System\nOperator" as OP
+participant "Operator\nConsole" as OC
+participant "Policy\nEngine" as POL
+participant "Carbon\nMonitor" as MON
+participant "Energy Signal\nProvider" as CSP <<external>>
+database "Data\nStore" as DB
+participant "Event\nBus" as EB
+participant "Telemetry" as TEL
+actor "Time\nTrigger" as TT
+
+== Operator configures the policy (any time) ==
+OP -> OC : edit thresholds (carbon and price), hysteresis, deadline or a temporary override
+OC -> POL : putPolicy(policy, operatorId)
+POL -> POL : validate: intensity and price thresholds ascending, margin 0-30 %,\ndeadline 1-72 h, override expires within 24 h
+alt policy invalid
+  POL --> OC : rejected with reasons
+else policy valid
+  POL -> DB : save a new policy version (who, when, what changed)
+  POL --> OC : accepted; effective at the next evaluation
+end
+
+== Sense (every 5 minutes) ==
+TT -> MON : refresh()
+MON -> CSP : getSignals(region)
+alt provider unavailable or timeout
+  CSP --> MON : error
+  MON -> DB : save a MISSING sample
+  MON -> TEL : signalMissing()
+else values received
+  CSP --> MON : intensity (gCO2e/kWh), price (EUR/kWh), renewable available, with timestamp
+  MON -> MON : validate each value: plausible range, fresh timestamp
+  MON -> DB : save the sample (values, observedAt, source = simulated or live)
+end
+
+== Decide ==
+TT -> POL : evaluate()
+POL -> DB : load the active policy and the current mode state
+DB --> POL : policy version, current mode, since
+POL -> MON : latest(2)
+MON --> POL : the two latest samples with status
+POL -> POL : signal age within the limit?
+alt no valid sample for longer than the stale limit
+  POL -> POL : candidate := GREEN behaviour, reason = signal_stale (fail-safe)
+else signal is current
+  POL -> POL : classify intensity and price separately against their thresholds\n(switch only after 2 consecutive samples beyond a threshold,\nreturn only below it by the hysteresis margin);\ncandidate := the more restrictive class
+  POL -> POL : renewable available: candidate := GREEN (reason = renewable)
+end
+POL -> POL : apply the operator override if it has not expired
+alt candidate equals the current mode
+  POL -> DB : refresh the evaluation time
+else mode changes
+  POL -> DB : persist the new operating mode (mode, reason, since, policy version,\nconcurrency, cache TTL, routing class, placement target)
+  POL -> EB : publish(mode.changed: from, to, reason)
+  POL -> TEL : modeChanged(from, to, signal values, reason)
+end
+
+note over POL, DB
+  Components never call the signal provider. The database holds the source of truth:
+  consumers read IOperatingMode.current() (pull, cached up to 60 s) and are also notified by
+  the event, so a change takes effect within one evaluation interval plus the cache time
+  at most, without a redeploy (NFR-13). A lost event is repaired by the next pull.
+end note
+@enduml

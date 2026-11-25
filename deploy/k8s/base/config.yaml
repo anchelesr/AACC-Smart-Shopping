@@ -1,0 +1,12 @@
+# Shared configuration of all roles. The overlays change single values (see overlays/kind for the demonstration).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shopping-config
+data:
+  SHOPPING_CLUSTER: incluster             # Placement Controller talks to the Kubernetes REST API with its service account
+  SHOPPING_FEED: simulated                # simulated | controlled (controlled: signals set with PUT /ops/simulation)
+  SHOPPING_INTERVAL: "30"                 # seconds between control-loop steps
+  SHOPPING_MODE_CACHE_SECONDS: "60"
+  SHOPPING_JOB_ASSUMED_SECONDS: "600"     # ASSUMED length of a forecast job for the energy estimate
+  SHOPPING_SEED_DEMO: "0"                 # 1: load synthetic prices when the database is empty (demonstration only)

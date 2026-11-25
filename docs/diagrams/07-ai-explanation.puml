@@ -1,0 +1,64 @@
+@startuml
+title Explain the advice with the AI assistant (ASUC-02)
+autonumber
+hide footbox
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+participant "Shopper" as P0 #edf1f5
+participant "Shopper Client" as P1 #eaf2ff
+participant "Assistant Service" as P2 #fff3df
+participant "Price Evidence" as P3 #fff3df
+participant "Advice Engine" as P4 #fff3df
+participant "LLM Gateway" as P5 #e3f6ed
+participant "Policy Engine" as P6 #e3f6ed
+participant "Local Model Runtime" as P7 #edf1f5
+participant "LLM Provider" as P8 #edf1f5
+P0 -> P1 : Ask a question about a laptop
+activate P1
+P1 -> P2 : ask(question, productId, sessionId)
+activate P2
+P2 -> P3 : getEvidence(productId)
+P3 --> P2 : Evidence
+P2 -> P4 : advise(productId, evidence)
+P4 --> P2 : Advice label, reasons, forecast status
+P2 -> P2 : Build evidence payload and hash it
+P2 -> P5 : complete(intent, question, payload, sessionId)
+activate P5
+P5 -> P5 : Input guardrail: size and scope; product text is data, not instructions
+alt out of scope or unsafe
+P5 --> P2 : Refusal from template (REFUSED)
+else accepted
+P5 -> P5 : Cache lookup (intent, product, evidence hash, mode class)
+alt cache hit
+P5 -> P5 : route := CACHE
+else cache miss
+P5 -> P6 : Read mode and routing class
+P6 --> P5 : GREEN | AMBER | RED
+P5 -> P5 : Value score V and cost estimate; route TEMPLATE | SMALL | LARGE (no agent)
+alt route TEMPLATE
+P5 -> P5 : Render answer from template and evidence
+else route SMALL or LARGE
+loop at most 2 attempts
+alt route SMALL
+P5 -> P7 : complete(prompt, evidence, temperature 0)
+P7 --> P5 : Draft answer
+else route LARGE
+P5 -> P8 : complete(prompt, evidence, temperature 0)
+P8 --> P5 : Draft answer
+end
+P5 -> P5 : Output guardrail: schema, numbers grounded, label equals rule result
+end
+opt both attempts rejected
+P5 -> P5 : Template answer; flag for human review
+end
+end
+end
+P5 -> P5 : Trace log (route, model, tokens, latency, energy, mode)
+P5 --> P2 : Answer, route, disclosure label
+deactivate P5
+end
+P2 --> P1 : Explanation labelled AI-generated | simplified | refused
+deactivate P2
+P1 --> P0 : Show explanation next to the evidence
+deactivate P1
+@enduml

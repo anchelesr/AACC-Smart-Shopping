@@ -1,0 +1,49 @@
+@startuml
+title Generate smart purchase recommendation (ASUC-01, advice)
+autonumber
+hide footbox
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+participant "Shopper" as P0 #edf1f5
+participant "Shopper Client" as P1 #eaf2ff
+participant "Shopping API" as P2 #fff3df
+participant "Advice Engine" as P3 #fff3df
+participant "Forecast Service" as P4 #fff3df
+participant "Catalog Query" as P5 #fff3df
+participant "Data Store" as P6 #f3edff
+P0 -> P1 : Request advice; optional budget and preferred brands
+activate P1
+P1 -> P2 : getInsights(productId, budget, preferences)
+activate P2
+P2 -> P3 : advise(productId, evidence, constraints)
+activate P3
+P3 -> P4 : getLatest(productId)
+P4 --> P3 : Forecast and status FRESH | STALE | MISSING
+P3 -> P3 : Apply advice rules to delta, trend and forecast status
+alt evidence insufficient
+P3 -> P3 : action := INSUFFICIENT_EVIDENCE
+else forecast fresh
+P3 -> P3 : action := BUY_NOW | WAIT from delta and forecast trend
+else forecast stale or missing
+P3 -> P3 : Decide from delta only; add caveat "no fresh forecast"
+end
+P3 -> P3 : Apply constraints: best offer vs budget, brand vs preferences
+opt BUY_NOW above budget
+P3 -> P3 : Withhold BUY_NOW; action := WAIT
+end
+P3 --> P2 : Advice, reasons, caveats, within budget, needs alternatives
+deactivate P3
+opt budget or brand preference not met
+P2 -> P5 : findAlternatives(constraints, excluding productId)
+activate P5
+P5 -> P6 : Read lowest current offers of other laptops
+P6 --> P5 : Offers
+P5 -> P5 : Keep laptops within constraints; rank by price; at most 3
+P5 --> P2 : Alternatives / none
+deactivate P5
+end
+P2 --> P1 : Advice, reasons, caveats and alternatives
+deactivate P2
+P1 --> P0 : Display recommendation and limitations
+deactivate P1
+@enduml

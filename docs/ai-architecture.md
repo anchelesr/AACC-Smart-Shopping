@@ -31,7 +31,7 @@ The course describes ML development as six recurring stages that keep sending th
 
 | Stage | Our design |
 | --- | --- |
-| Data collection | Validated observations from the importer ([ASUC-03](diagrams/previews/sequence-import.png)); provenance kept. |
+| Data collection | Validated observations from the importer ([ASUC-03](diagrams/01-import.png)); provenance kept. |
 | Data integrity | Schema, positive amounts, comparable currency, unique observation identity. |
 | Cleaning | One value per day: the lowest valid offer. A gap of up to 3 days is carried forward; longer gaps make the series ineligible and the job reports `insufficient_data`. |
 | Features | The cleaned daily series of the last 30 days; no hand-built features are needed for the chosen models. |

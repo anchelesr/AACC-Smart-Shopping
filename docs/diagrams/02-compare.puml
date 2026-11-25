@@ -1,0 +1,47 @@
+@startuml
+title Discover and compare products (SQ-01)
+autonumber
+hide footbox
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+participant "Shopper" as P0 #edf1f5
+participant "Shopper Client" as P1 #eaf2ff
+participant "Shopping API" as P2 #fff3df
+participant "Catalog Query" as P3 #fff3df
+participant "Price Evidence" as P4 #fff3df
+participant "Advice Engine" as P5 #fff3df
+participant "Data Store" as P6 #f3edff
+P0 -> P1 : Enter search, filters and selected laptops
+activate P1
+P1 -> P2 : findProducts(criteria, selected ids)
+activate P2
+P2 -> P2 : Validate criteria and normalize query
+P2 -> P3 : findProducts(criteria)
+activate P3
+P3 -> P6 : Read matching variants and latest offers
+activate P6
+P6 --> P3 : Laptops, prices, source and observedAt
+deactivate P6
+P3 -> P3 : Group exact variants; keep comparable currency only
+alt matching laptops exist
+P3 -> P3 : Sort results and flag stale offers
+P3 --> P2 : Ranked laptops and offers
+opt two or three laptops selected
+loop each selected laptop
+P2 -> P4 : getEvidence(productId)
+P4 --> P2 : Best offer, reference, delta, sufficiency
+P2 -> P5 : advise(productId, evidence)
+P5 --> P2 : Advice and forecast status
+end
+P2 -> P2 : Build side-by-side comparison table
+end
+else no matches
+P3 --> P2 : Empty result
+P2 -> P2 : Add suggested filter changes
+end
+deactivate P3
+P2 --> P1 : Results, comparison, sources and observation times
+deactivate P2
+P1 --> P0 : Display results with provenance and freshness
+deactivate P1
+@enduml

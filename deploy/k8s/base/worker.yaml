@@ -1,0 +1,42 @@
+# Forecast worker: the flexible workload. NO toleration and NO node selector on purpose: when the Placement Controller
+# puts the energy-role=blocked:NoExecute taint on its node, Kubernetes evicts this pod and starts it on the other pool.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopping-worker
+  labels: {app.kubernetes.io/name: shopping-worker, app.kubernetes.io/part-of: shopping}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: shopping-worker}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: shopping-worker, app.kubernetes.io/part-of: shopping, shopping/role: worker}
+    spec:
+      terminationGracePeriodSeconds: 20
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: wait-for-database
+          image: ghcr.io/anchelesr/aacc-smart-shopping:latest
+          command: ["python", "-c", "import socket,time,sys\nfor _ in range(120):\n    try:\n        socket.create_connection(('postgres', 5432), 2).close(); sys.exit(0)\n    except OSError:\n        time.sleep(2)\nsys.exit(1)"]
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 64Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+      containers:
+        - name: shopping
+          image: ghcr.io/anchelesr/aacc-smart-shopping:latest
+          args: ["--role", "worker", "--host", "0.0.0.0", "--port", "8080"]
+          ports:
+            - {name: http, containerPort: 8080}
+          envFrom:
+            - configMapRef: {name: shopping-config}
+          env:
+            - {name: POSTGRES_PASSWORD, valueFrom: {secretKeyRef: {name: postgres, key: password}}}
+            - name: SHOPPING_DATABASE_URL
+              value: postgresql://shopping:$(POSTGRES_PASSWORD)@postgres:5432/shopping
+            - {name: SHOPPING_OPS_TOKEN, valueFrom: {secretKeyRef: {name: shopping-ops, key: token}}}
+            - {name: NODE_NAME, valueFrom: {fieldRef: {fieldPath: spec.nodeName}}}
+            - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+          readinessProbe: {httpGet: {path: /health/ready, port: http}, periodSeconds: 5, failureThreshold: 3}
+          livenessProbe: {httpGet: {path: /health/live, port: http}, periodSeconds: 10, failureThreshold: 3, initialDelaySeconds: 10}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}

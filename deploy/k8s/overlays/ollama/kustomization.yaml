@@ -1,0 +1,13 @@
+# kind overlay plus a real local model runtime (Ollama) and its configuration in the application.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: shopping
+resources:
+  - ../kind
+  - ollama.yaml
+patches:
+  - target: {kind: ConfigMap, name: shopping-config}
+    patch: |-
+      - {op: add, path: /data/SHOPPING_LOCAL_MODEL_URL, value: "http://ollama:11434/v1"}
+      - {op: add, path: /data/SHOPPING_LOCAL_MODEL, value: "qwen2.5:1.5b"}          # GREEN
+      - {op: add, path: /data/SHOPPING_LOCAL_MODEL_AMBER, value: "qwen2.5:0.5b"}    # AMBER (RED: template, no model)

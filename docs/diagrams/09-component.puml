@@ -1,0 +1,105 @@
+@startuml
+title Smart Shopping - Logical Component Model (UML 2 assembly connectors: provided ball, required socket)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 130
+skinparam nodesep 30
+skinparam ranksep 55
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 10
+skinparam component {
+  BorderColor #B52330
+  BackgroundColor #FFF4F4
+  FontColor #202025
+}
+skinparam package {
+  BorderColor #AAAAAA
+  FontColor #555555
+}
+skinparam LegendBackgroundColor #FAF5F5
+skinparam LegendBorderColor #B52330
+top to bottom direction
+skinparam nodesep 40
+skinparam ranksep 60
+
+package "Shopper side" {
+  component "Shopper Client" as UI
+  component "Shopping API" as API #E8ECF4
+  component "Assistant Service" as AS
+  component "Catalog Query" as CAT
+  component "Price Evidence" as EV
+  component "Advice Engine" as ADV
+  component "Forecast Service" as FS
+  component "Watch Monitor" as WM
+  component "LLM Gateway" as GW #E8ECF4
+}
+
+package "Adaptive operation" {
+  component "Operator Console" as OC
+  component "Policy Engine" as POL #E8ECF4
+  component "Carbon Monitor" as MON #E8ECF4
+  component "Job Scheduler" as JS #E8ECF4
+  component "Forecast Worker" as FW
+  component "Model Evaluator" as ME
+  component "Forecast Model Adapter" as AD #E8ECF4
+  component "Price Importer" as IMP
+  component "Placement Controller" as PC #E8ECF4
+  component "Event Bus" as EB #E8ECF4
+  component "Local Model Runtime" as LMR #E8ECF4
+}
+
+component "Time Trigger" as TT #FFFFFF
+component "Energy Signal Provider" as CSP #FFFFFF
+component "Price Data Provider" as SRC #FFFFFF
+component "LLM Provider" as LLM #FFFFFF
+component "Pretrained Forecast Model" as PFM #FFFFFF
+component "Kubernetes API" as K8S #FFFFFF
+
+' provider -0)- consumer : interface
+
+API -0)- UI : IShoppingAPI
+AS -0)- UI : IAssistantAPI
+CAT -0)- API : ICatalog
+EV -0)- API : IPriceEvidence
+ADV -0)- API : IAdvice
+WM -0)- API : IWatchlist
+CAT -0)- WM : ICatalog
+EV -0)- AS : IPriceEvidence
+ADV -0)- AS : IAdvice
+FS -0)- ADV : IForecastRead
+GW -0)- AS : ILlmGateway
+LLM -0)- GW : ILlmProvider
+LMR -0)- GW : ILlmProvider
+
+POL -0)- OC : IPolicyAdmin
+GW -0)- OC : IReviewQueue
+POL -0)- GW : IOperatingMode
+POL -0)- JS : IOperatingMode
+POL -0)- IMP : IOperatingMode
+POL -0)- ME : IOperatingMode
+POL -0)- PC : IOperatingMode
+MON -0)- POL : IEnergySignal
+CSP -0)- MON : IEnergyFeed
+
+EB -0)- POL : IEventBus
+EB -0)- IMP : IEventBus
+EB -0)- JS : IEventBus
+EB -0)- GW : IEventBus
+EB -0)- PC : IEventBus
+K8S -0)- PC : IClusterControl
+
+FW -0)- JS : IForecastJob
+ME -0)- JS : IModelEvaluation
+AD -0)- FW : IForecastModel
+AD -0)- ME : IForecastModel
+PFM -0)- AD : IModelRuntime
+SRC -0)- IMP : IPriceSource
+
+IMP -0)- TT : IIngest
+JS -0)- TT : IScheduling
+MON -0)- TT : IEnergySignal
+POL -0)- TT : IPolicyEvaluation
+WM -0)- TT : IWatchCheck
+
+@enduml

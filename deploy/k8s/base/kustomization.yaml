@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: shopping
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - config.yaml
+  - postgres.yaml
+  - api.yaml
+  - worker.yaml
+  - controller.yaml
+# the secrets `postgres` (key password) and `shopping-ops` (key token) are NOT part of the base:
+# create them (see deploy/README.md) or use an overlay that generates demonstration values
+images:
+  - name: ghcr.io/anchelesr/aacc-smart-shopping
+    newTag: latest

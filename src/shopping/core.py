@@ -17,30 +17,9 @@ PULL_SECONDS = 60
 
 
 def connect(path: str = ":memory:") -> sqlite3.Connection:
-    db = sqlite3.connect(path)
-    db.execute("PRAGMA foreign_keys = ON")
-    db.executescript("""
-    CREATE TABLE IF NOT EXISTS observations (laptop_id TEXT, retailer TEXT, observed_at TEXT, price REAL,
-                                             PRIMARY KEY (laptop_id, retailer, observed_at));
-    CREATE TABLE IF NOT EXISTS products (laptop_id TEXT PRIMARY KEY, brand TEXT, model TEXT);
-    CREATE TABLE IF NOT EXISTS watches (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT NOT NULL, laptop_id TEXT NOT NULL,
-                                        target_price REAL NOT NULL, enabled INTEGER NOT NULL DEFAULT 1,
-                                        alerted INTEGER NOT NULL DEFAULT 0, episode INTEGER NOT NULL DEFAULT 0,
-                                        created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (device_id, laptop_id));
-    CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, watch_id INTEGER NOT NULL REFERENCES watches(id) ON DELETE CASCADE,
-                                       price REAL, retailer TEXT, observed_at TEXT, dedup_key TEXT NOT NULL UNIQUE,
-                                       created_at TEXT NOT NULL DEFAULT (datetime('now')), read_at TEXT);
-    CREATE TABLE IF NOT EXISTS watch_checks (id INTEGER PRIMARY KEY AUTOINCREMENT, run_at TEXT, checked INTEGER, alerted INTEGER, skipped INTEGER);
-    CREATE TABLE IF NOT EXISTS forecast_runs (laptop_id TEXT, generated_at TEXT);
-    CREATE TABLE IF NOT EXISTS forecast_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, laptop_id TEXT,
-                                              status TEXT, created_at TEXT);
-    CREATE UNIQUE INDEX IF NOT EXISTS one_open_job_per_laptop ON forecast_jobs(laptop_id)
-        WHERE status IN ('queued', 'running');
-    CREATE TABLE IF NOT EXISTS operating_mode_state (id INTEGER PRIMARY KEY CHECK (id = 1), mode TEXT, reason TEXT,
-                                                     since TEXT, placement_target TEXT, policy_version INTEGER);
-    INSERT OR IGNORE INTO operating_mode_state VALUES (1, 'GREEN', 'initial', '1970-01-01T00:00:00+00:00', 'standard', 1);
-    """)
-    return db
+    """SQLite connection with the full schema (shopping/schema.py)."""
+    from .db import open_database
+    return open_database("sqlite://" + path)
 
 
 class PriceImporter:
@@ -56,7 +35,7 @@ class PriceImporter:
             if not laptop or not retailer or not observed_at or price is None or price <= 0:
                 rejected += 1
                 continue
-            cur = self.db.execute("INSERT OR IGNORE INTO observations VALUES (?, ?, ?, ?)", (laptop, retailer, observed_at, price))
+            cur = self.db.execute("INSERT OR IGNORE INTO observations (laptop_id, retailer, observed_at, price) VALUES (?, ?, ?, ?)", (laptop, retailer, observed_at, price))
             if cur.rowcount:
                 new_per_laptop[laptop] = new_per_laptop.get(laptop, 0) + 1
         self.db.commit()                                   # state first, then the notification
@@ -118,13 +97,13 @@ class PolicyEngine:
 class ModeReader:
     """IOperatingMode.current(): pull with a cache of up to 60 s; mode.changed only invalidates it earlier."""
 
-    def __init__(self, db: sqlite3.Connection, clock: Callable[[], float] = time.monotonic) -> None:
-        self.db, self.clock = db, clock
+    def __init__(self, db: sqlite3.Connection, clock: Callable[[], float] = time.monotonic, pull_seconds: float = PULL_SECONDS) -> None:
+        self.db, self.clock, self.pull_seconds = db, clock, pull_seconds
         self._cached: tuple | None = None
         self._at = 0.0
 
     def current(self) -> tuple[str, str]:
-        if self._cached is None or self.clock() - self._at >= PULL_SECONDS:
+        if self._cached is None or self.clock() - self._at >= self.pull_seconds:
             mode, target = self.db.execute("SELECT mode, placement_target FROM operating_mode_state WHERE id=1").fetchone()
             self._cached, self._at = (mode, target), self.clock()
         return self._cached

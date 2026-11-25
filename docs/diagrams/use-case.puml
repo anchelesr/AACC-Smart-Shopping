@@ -1,34 +1,46 @@
 @startuml
+title Smart Shopping - Use Case Model (four use cases, two extensions of UC2)
 left to right direction
 skinparam shadowing false
 skinparam backgroundColor white
-skinparam usecaseBackgroundColor #FFF5F5
-skinparam usecaseBorderColor #BE2432
+skinparam dpi 140
+skinparam usecaseBackgroundColor #FFF4F4
+skinparam usecaseBorderColor #B52330
 skinparam usecaseFontColor #202025
-title Smart Shopping - Overall Use Case Model
+skinparam actorBackgroundColor #EEEEEE
+skinparam actorBorderColor #202025
+skinparam rectangleBorderColor #999999
+skinparam LegendBackgroundColor #FAF5F5
+skinparam LegendBorderColor #B52330
+
 actor Shopper
 actor "System Operator" as Operator
-actor "Kubernetes Scheduled Trigger" as Tick
-actor "Approved Price Source" as Source
-actor "Simulated Carbon Feed" as Carbon
-rectangle "Smart Shopping System" {
-  usecase "Search and Filter Laptops" as Search
-  usecase "Compare Offers / Price History" as Compare
-  usecase "View 7-Day Forecast" as Forecast
-  usecase "Get Explainable Advice" as Advice
-  usecase "Import Price Observations" as Import
-  usecase "Refresh Forecasts" as Refresh
-  usecase "Evaluate Carbon and Deadline" as Policy
-  usecase "Inspect Metrics" as Metrics
+actor "Time Trigger" as Tick <<system>>
+
+rectangle "Smart Shopping" {
+  usecase "UC1\nFind and compare\nlaptop offers" as UC1
+  usecase "UC2\nAssess a laptop's price\nand get advice" as UC2
+  usecase "UC2 extension\nExplain the advice\n(AI assistant)" as UC2A
+  usecase "UC2 extension\nWatch a price and receive\nin-app alerts" as UC2W
+  usecase "UC3\nMaintain price data" as UC3
+  usecase "UC4\nAdapt operation to carbon\nand energy-price conditions" as UC4
 }
-Shopper -- Search
-Shopper -- Compare
-Shopper -- Forecast
-Shopper -- Advice
-Tick -- Import
-Tick -- Refresh
-Source -- Import
-Carbon -- Policy
-Operator -- Metrics
-Refresh ..> Policy : <<include>>
+
+actor "Price Data Provider" as Source <<external>>
+actor "Energy Signal Provider" as Carbon <<external>>
+
+Shopper -- UC1
+Shopper -- UC2
+Shopper -- UC2A
+Shopper -- UC2W
+UC2A .> UC2 : <<extend>>
+UC2W .> UC2 : <<extend>>
+Operator -- UC3
+Operator -- UC4
+Tick -- UC2W
+Tick -- UC3
+Tick -- UC4
+UC3 -- Source
+UC4 -- Carbon
+
 @enduml
