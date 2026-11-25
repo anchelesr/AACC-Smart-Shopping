@@ -1,0 +1,62 @@
+@startuml
+title SQ-01 - Find and compare laptop offers (UC1, supplementary sequence)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor Shopper
+participant "Shopper\nClient" as UI
+participant "Shopping\nAPI" as API
+participant "Catalog\nQuery" as CAT
+participant "Price\nEvidence" as EV
+participant "Advice\nEngine" as ADV
+database "Data\nStore" as DB
+
+Shopper -> UI : enter search, filters and sorting; optionally select up to three laptops
+UI -> API : findProducts(criteria, selected ids)
+activate API
+API -> API : validate the criteria (text, price bounds, sort order)\nand normalise the query
+API -> CAT : findProducts(criteria)
+activate CAT
+CAT -> DB : readMatchingVariantsAndLatestOffers(criteria)
+DB --> CAT : laptops with offers (retailer, price, currency, observedAt)
+CAT -> CAT : group exact variants; keep comparable currency only
+alt matching laptops exist
+  CAT -> CAT : sort as requested; flag offers older than the freshness limit
+  CAT --> API : ranked laptops and offers
+  opt two or three laptops are selected
+    loop each selected laptop
+      API -> EV : getEvidence(productId)
+      EV --> API : best offer, reference, delta, sufficiency
+      API -> ADV : advise(productId, evidence)
+      ADV --> API : advice and forecast status
+    end
+    API -> API : build the side-by-side table:\nbest offer, delta, forecast status, advice
+  end
+else no matching laptop
+  CAT --> API : empty result
+  API -> API : add suggested filter changes (widen the price range, drop a brand)
+end
+deactivate CAT
+API --> UI : results, comparison table, sources and observation times
+deactivate API
+UI --> Shopper : show offers with provenance and freshness
+
+note over API, DB
+  Only exact variants and prices in a comparable currency are compared. UC1 is read-only and forces no new
+  component, so it is a supplementary sequence and not an architecturally significant use case.
+end note
+@enduml

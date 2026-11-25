@@ -1,0 +1,61 @@
+@startuml
+title ASUC-04c - Adapt to energy conditions: relocate flexible workloads (UC4)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor "Time\nTrigger" as TT
+participant "Event\nBus" as EB
+participant "Placement\nController" as PC
+participant "Policy\nEngine" as POL
+participant "Kubernetes\nAPI" as K8S <<external>>
+database "Data\nStore" as DB
+participant "Telemetry" as TEL
+
+== Trigger ==
+EB -> PC : modeChanged(from, to, reason)
+TT -> PC : reconcile() every 5 minutes (repairs a lost event)
+
+== Decide the target pool ==
+PC -> POL : current()
+POL --> PC : mode, placement target
+PC -> PC : target pool := the placement target stored with the mode\n(eco for AMBER, RED or renewable available; standard otherwise)
+PC -> K8S : listNodes(pool labels, readiness)
+K8S --> PC : nodes with pool label, ready state and taints
+PC -> PC : safety checks: both pools have a ready node,\nthe last placement change is older than the dwell time (15 min),\nthe change would not leave zero schedulable nodes
+alt a check fails or the target equals the current placement
+  PC -> DB : record the decision as SKIPPED (reason)
+  PC -> TEL : placementSkipped(reason)
+else placement changes
+  == Act ==
+  PC -> K8S : taint the non-target pool energy-role=blocked (NoExecute);\nremove the taint from the target pool
+  K8S --> PC : taints applied
+  K8S -> K8S : evict pods that do not tolerate the taint\n(forecast Jobs, local model runtime) and reschedule them on the target pool
+  note right of K8S
+    Request-path pods, the database, the event bus and monitoring
+    carry a toleration and never move. Evicted Jobs are idempotent
+    and leased, so they are retried before their deadline.
+  end note
+  PC -> DB : record the decision (mode, target pool, reason, outcome APPLIED)
+  PC -> TEL : placementChanged(from pool, to pool, mode)
+end
+
+note over PC, TEL
+  Taints are touched only when the decision changes, otherwise every loop would evict pods.
+  The simulated pools stand for a low-carbon or low-price node group; the speed difference
+  between the pools is measured, not assumed (carbon-adaptation.md).
+end note
+@enduml

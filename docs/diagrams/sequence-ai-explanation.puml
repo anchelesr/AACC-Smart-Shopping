@@ -1,0 +1,97 @@
+@startuml
+title ASUC-02 - Explain the advice with the AI assistant (extension of UC2)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+  BoxBorderColor #B52330
+  BoxBackgroundColor #FBFBFB
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor Shopper
+participant "Shopper\nClient" as UI
+participant "Assistant\nService" as AS
+participant "Price\nEvidence" as EV
+participant "Advice\nEngine" as ADV
+box "LLM Gateway"
+  participant "Input\nGuardrail" as IG
+  participant "Model\nRouter" as RT
+  participant "Cache &\nMemory" as CM
+  participant "Output\nGuardrail" as OG
+  participant "Trace\nLog" as TR
+end box
+participant "Policy\nEngine" as POL
+participant "Local Model\nRuntime" as LMR
+participant "LLM\nProvider" as LLM <<external>>
+
+Shopper -> UI : ask a question about a laptop
+UI -> AS : ask(question, productId, sessionId)
+AS -> EV : getEvidence(productId)
+EV --> AS : evidence
+AS -> ADV : advise(productId, evidence)
+ADV --> AS : advice (action, reasons, forecast status)
+AS -> AS : build the evidence payload\n(structured facts, advice label, caveats) and hash it
+AS -> IG : complete(intent, question, evidence payload, sessionId)
+IG -> IG : check size and scope; treat product and retailer text\nas data, never as instructions
+alt out of scope or unsafe input
+  IG --> AS : refusal from template, route = REFUSED
+else accepted
+  IG -> RT : route(request)
+  RT -> CM : lookup(intent, productId, evidenceHash, modeClass)
+  alt cache hit
+    CM --> RT : cached answer
+    RT -> RT : route := CACHE
+  else cache miss
+    RT -> POL : current()
+    POL --> RT : operating mode, signal snapshot and routing class
+    RT -> RT : value score V and cost estimate (tokens, Wh, gCO2e, price),\nthen route decision (TEMPLATE | SMALL | LARGE): V reaches the value\nrequired by the mode, cost cap and budget allow it; no tools or agent loop
+    alt route = TEMPLATE (evidence insufficient, RED mode, budget exhausted or provider unavailable)
+      RT -> RT : render the answer from a template and the evidence\n(no model call)
+    else route = SMALL or LARGE
+      RT -> CM : loadSession(sessionId)
+      CM --> RT : last turns
+      loop at most 2 attempts
+        alt route = SMALL
+          RT -> LMR : complete(local model, prompt with evidence and history, temperature 0)
+          LMR --> RT : draft answer
+        else route = LARGE
+          RT -> LLM : complete(large model, prompt with evidence and history, temperature 0)
+          LLM --> RT : draft answer
+        end
+        RT -> OG : check(draft, evidence payload)
+        OG -> OG : schema valid, every number and date grounded in the evidence,\naction label equals the rule result, no price guarantees
+        alt check passed
+          OG --> RT : approved
+        else check failed
+          OG --> RT : rejected with error message
+          RT -> RT : add the error to the prompt;\nescalate to LARGE only in GREEN mode
+        end
+      end
+      alt both attempts rejected
+        RT -> RT : fall back to the template answer\nand flag the exchange for human review
+      end
+    end
+    RT -> CM : store(answer, session turn)
+  end
+  RT -> TR : log(route and reasons, model, prompt version, tokens, latency,\nguardrail outcome, estimated energy, operating mode, flagged)
+  RT --> AS : answer, route, disclosure label
+end
+AS --> UI : explanation with label AI-generated | simplified | refused
+UI --> Shopper : show the explanation next to the evidence
+
+note over TR
+  Flagged exchanges appear in the operator review queue (IReviewQueue).
+  The operator decision is stored and extends the evaluation set.
+end note
+@enduml

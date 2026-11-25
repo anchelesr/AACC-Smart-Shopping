@@ -1,0 +1,31 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam actorStyle awesome
+skinparam usecaseBackgroundColor #FFF5F5
+skinparam usecaseBorderColor #BE2432
+skinparam usecaseFontColor #202025
+title Smart Shopping - Shopper Use Cases (Laptop MVP)
+actor Shopper
+rectangle "Smart Shopping - Shopper Functions" {
+  usecase "Search Laptops" as Search
+  usecase "Filter and Sort Results" as Filter
+  usecase "Compare Retailer Offers" as Offers
+  usecase "View 30-Day Price History" as History
+  usecase "Inspect Discount Evidence" as Discount
+  usecase "View Stored 7-Day Forecast" as Forecast
+  usecase "Get Explained Buy / Wait Advice" as Advice
+}
+Shopper -- Search
+Shopper -- Filter
+Shopper -- Offers
+Shopper -- History
+Shopper -- Discount
+Shopper -- Forecast
+Shopper -- Advice
+note bottom of Advice
+  Stale/missing forecast: show a caveat;
+  rules-only or Insufficient Evidence.
+end note
+@enduml

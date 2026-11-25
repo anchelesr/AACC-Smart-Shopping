@@ -1,0 +1,86 @@
+@startuml
+title SQ-02 - Watch a price and receive in-app alerts (UC2 extension, supplementary sequence)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor Shopper
+participant "Shopper\nClient" as UI
+participant "Shopping\nAPI" as API
+participant "Watch\nMonitor" as WM
+participant "Catalog\nQuery" as CAT
+database "Data\nStore" as DB
+participant "Time\nTrigger" as TT
+participant "Telemetry" as TEL
+
+== Save a watch ==
+Shopper -> UI : choose a laptop and a target price
+UI -> API : saveWatch(deviceId, productId, targetPrice)
+activate API
+API -> WM : saveWatch(deviceId, productId, targetPrice)
+activate WM
+WM -> WM : validate: random device id, known laptop,\npositive target, at most 20 watches per device
+WM -> DB : upsert the watch (a new target starts a new alert episode)
+DB --> WM : watch saved
+WM --> API : confirmation
+deactivate WM
+API --> UI : active watch
+deactivate API
+UI --> Shopper : show the active watch and keep the device id in the browser
+
+== Scheduled check (every 30 minutes) ==
+TT -> WM : checkWatches()
+activate WM
+WM -> DB : readEnabledWatches()
+DB --> WM : watches (device, laptop, target, alert state)
+loop each enabled watch
+  WM -> CAT : getCurrentOffers(productId)
+  CAT --> WM : latest offer per retailer with observedAt
+  WM -> WM : take the lowest comparable offer;\ncheck its age against the 48 h limit
+  alt fresh offer at or below the target and no alert in this episode
+    WM -> DB : set alerted and store the alert with its deduplication key\n(one transaction)
+    DB --> WM : alert stored, or already exists
+  else fresh offer above the target and an alert was raised before
+    WM -> DB : end the episode (the next dip alerts again)
+  else offer stale or missing, or target not reached
+    WM -> WM : skip; nothing is created or reset
+  end
+end
+WM -> DB : record the check outcome (checked, alerted, skipped)
+WM -> TEL : checkFinished(counts, duration)
+WM --> TT : outcome
+deactivate WM
+
+== Read the alerts ==
+Shopper -> UI : open the application
+UI -> API : getAlerts(deviceId)
+activate API
+API -> WM : listAlerts(deviceId)
+activate WM
+WM -> DB : loadAlerts(deviceId)
+DB --> WM : alerts of this device only
+WM --> API : alerts
+deactivate WM
+API --> UI : alert list
+deactivate API
+UI --> Shopper : show in-app notifications (price, retailer, observation time)
+
+note over UI, TEL
+  No account, email or push delivery. The device id is random and pseudonymous; the server stores the device id,
+  the laptop and the target price only. A failed check leaves stored prices and alerts intact; stale data never
+  creates or resets an alert.
+end note
+@enduml

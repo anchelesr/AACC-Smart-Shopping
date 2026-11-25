@@ -1,0 +1,42 @@
+@startuml
+title Smart Shopping - C4 Level 1: System Context
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 10
+skinparam rectangle {
+  BorderColor #B52330
+  BackgroundColor #FFF4F4
+  FontColor #202025
+}
+skinparam actor {
+  BackgroundColor #EEEEEE
+  BorderColor #202025
+}
+skinparam LegendBackgroundColor #FAF5F5
+skinparam LegendBorderColor #B52330
+left to right direction
+
+actor "Shopper\n(compares laptop prices)" as Shopper
+actor "System Operator\n(runs and tunes the system)" as Operator
+
+rectangle "Smart Shopping\n[software system]\nPrice evidence, stored forecasts, advice,\nAI explanation, energy-adaptive operation" as SYS
+
+rectangle "Price Data Provider\n[external]\napproved CSV or API" as SRC #FFFFFF
+rectangle "Energy Signal Provider\n[external]\nsimulated, optionally Electricity Maps" as ESP #FFFFFF
+rectangle "LLM Provider\n[external]\nlarge model, European provider preferred" as LLM #FFFFFF
+rectangle "Kubernetes platform\n[external]\nscheduling, node pools" as K8S #FFFFFF
+
+Shopper --> SYS : searches, reads evidence,\nasks questions
+Operator --> SYS : edits policy, reviews\nflagged answers, watches dashboards
+SRC --> SYS : price observations (pull)
+ESP --> SYS : carbon intensity, price,\nrenewable flag (pull)
+SYS --> LLM : evidence payload,\nlarge-model calls
+SYS --> K8S : taints, workload placement
+
+legend bottom
+  C4 context view: the system as one box with its users and the external systems it depends on.
+  Containers are shown in c4-container.puml; components in component-model.puml.
+endlegend
+@enduml

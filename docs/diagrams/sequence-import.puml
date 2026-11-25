@@ -1,0 +1,70 @@
+@startuml
+title ASUC-03 - Maintain price data (UC3)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor "Time\nTrigger" as TT
+participant "Price\nImporter" as IMP
+participant "Policy\nEngine" as POL
+participant "Event\nBus" as EB
+participant "Job\nScheduler" as JS
+participant "Price Data\nProvider" as SRC <<external>>
+database "Data\nStore" as DB
+participant "Telemetry" as TEL
+
+TT -> IMP : runImport(sourceId)
+activate IMP
+IMP -> POL : current()
+POL --> IMP : operating mode
+IMP -> IMP : select batches: the mandatory daily batch always runs;\noptional backfill and re-validation only in GREEN
+IMP -> SRC : fetch(batch)
+alt provider unavailable or batch unreadable
+  SRC --> IMP : error
+  IMP -> DB : record failed import run
+  IMP -> TEL : importFailed(sourceId)
+  note right of IMP
+    Existing observations stay visible and keep their age.
+    The next trigger retries; nothing is overwritten.
+  end note
+else batch received
+  SRC --> IMP : records
+  IMP -> DB : store the batch as received with its checksum (raw layer)
+  loop each record
+    IMP -> IMP : validate: known laptop variant and retailer, ISO currency,\npositive amount, observation time not in the future
+    alt record invalid
+      IMP -> IMP : add to the reject list with the reason
+    else record valid
+      IMP -> IMP : normalize: decimal amount, UTC time, currency code
+    end
+  end
+  IMP -> DB : upsert accepted records on\n(product, retailer, observedAt, provenance)
+  DB --> IMP : inserted, updated and unchanged counts
+  IMP -> DB : write the import report (accepted, rejected, reasons)
+  IMP -> EB : publish(price.changed: changed laptops, import run id)
+  IMP -> TEL : importFinished(counts, duration)
+  EB -> JS : priceChanged(changed laptops, import run id)
+  JS -> DB : enqueue or keep a forecast job per changed laptop\n(deadline := now + 24 h; an existing deadline is never reset)
+end
+deactivate IMP
+
+note over IMP, DB
+  Repeating the same batch inserts nothing new (idempotent upsert); an event delivered twice
+  creates no second job (at most one open job per laptop). Raw layer, validated observations
+  and derived series follow the bronze, silver and gold idea (data-engineering.md).
+  The operator reads the report as the data-quality view.
+end note
+@enduml

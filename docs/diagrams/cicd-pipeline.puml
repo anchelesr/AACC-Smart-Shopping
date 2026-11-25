@@ -1,0 +1,62 @@
+@startuml
+title CI/CD pipeline (designed; the documentation check and the event bus tests exist)
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 130
+skinparam ActivityBackgroundColor #FFF4F4
+skinparam ActivityBorderColor #B52330
+skinparam ArrowColor #555555
+skinparam ActivityDiamondBackgroundColor #FFF4F4
+skinparam ActivityDiamondBorderColor #B52330
+skinparam PartitionBorderColor #AAAAAA
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+start
+partition "Pull request: fast checks" {
+  :Commit and pull request;
+  fork
+    :Lint, format, type check;
+  fork again
+    :Unit tests: evidence, advice rules,\nmode hysteresis, guardrails;
+  fork again
+    :Validate PlantUML and documentation links;
+  fork again
+    :Secret scan and dependency audit;
+  end fork
+  :Contract tests: REST schema and component interfaces;
+}
+if (All checks green?) then (no)
+  :Block the merge;
+  stop
+else (yes)
+endif
+partition "Main branch: build and verify" {
+  :Build container images tagged with the git SHA;
+  :Image vulnerability scan and SBOM;
+  :Integration tests in an ephemeral Kubernetes cluster:\nimport twice, mode transitions, short load smoke;
+  :AI gates: forecast backtest against the baseline,\nassistant groundedness on the golden set;
+  if (Gates passed?) then (no)
+    :Fail the pipeline and keep the previous release;
+    stop
+  else (yes)
+  endif
+  :Push images to the registry;
+  :Update image tags in the deployment manifests (Git commit);
+}
+partition "Delivery (GitOps)" {
+  :The GitOps controller synchronises the demo cluster;
+  :Post-deploy smoke tests:\nready check, insights call, operating-mode call;
+  if (Smoke tests passed?) then (no)
+    :Roll back by reverting the manifest commit;
+  else (yes)
+    :Keep the release and store the evidence\n(workflow log, dashboard snapshot);
+  endif
+}
+stop
+note right
+  Policy defaults are versioned in Git.
+  Runtime policy changes are made by the operator,
+  stored with an audit trail, and need no deployment.
+end note
+@enduml

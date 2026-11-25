@@ -1,0 +1,26 @@
+# Creates the topics once the broker answers. Safe to run again (--if-not-exists).
+# The layout must match TOPIC_CONFIG in src/events/bus.py (a test of the repository checks this).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topics
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      tolerations:
+        - {key: energy-role, operator: Exists, effect: NoExecute}
+      containers:
+        - name: topics
+          image: apache/kafka:3.9.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              BIN=/opt/kafka/bin
+              until $BIN/kafka-broker-api-versions.sh --bootstrap-server kafka:9092 >/dev/null 2>&1; do echo "waiting for kafka"; sleep 3; done
+              $BIN/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic price.changed --partitions 3 --replication-factor 1 --config retention.ms=604800000 --config cleanup.policy=delete
+              $BIN/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic mode.changed  --partitions 1 --replication-factor 1 --config retention.ms=604800000 --config cleanup.policy=delete
+              $BIN/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic events.dead   --partitions 1 --replication-factor 1 --config retention.ms=1209600000 --config cleanup.policy=delete
+              $BIN/kafka-topics.sh --bootstrap-server kafka:9092 --list

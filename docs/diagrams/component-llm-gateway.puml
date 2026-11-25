@@ -1,0 +1,52 @@
+@startuml
+title LLM Gateway - internal structure (the harness around the model call)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 130
+skinparam nodesep 30
+skinparam ranksep 50
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 10
+skinparam component {
+  BorderColor #B52330
+  BackgroundColor #E8ECF4
+  FontColor #202025
+}
+skinparam LegendBackgroundColor #FAF5F5
+skinparam LegendBorderColor #B52330
+top to bottom direction
+
+component "Assistant Service" as AS #FFF4F4
+component "Operator Console" as OC #FFF4F4
+component "Policy Engine" as POL
+component "LLM Provider (external, large)" as LLM #FFFFFF
+component "Local Model Runtime (small)" as LMR #E8ECF4
+component "Event Bus" as EB #E8ECF4
+
+component "LLM Gateway" as GW {
+  component "Input Guardrail" as IG
+  component "Model Router" as RT
+  component "Cache & Memory" as CM
+  component "Output Guardrail" as OG
+  component "Trace Log" as TR
+}
+
+IG -0)- AS : ILlmGateway (entry)
+RT -0)- IG : IRoute
+CM -0)- RT : ICacheMemory
+OG -0)- RT : ICheckAnswer
+TR -0)- RT : ILogExchange
+POL -0)- RT : IOperatingMode
+LLM -0)- RT : ILlmProvider
+LMR -0)- RT : ILlmProvider
+EB -0)- RT : IEventBus
+TR -0)- OC : IReviewQueue
+
+legend bottom
+  The gateway is exposed to the Assistant Service as ILlmGateway; its first stage is the Input Guardrail.
+  Only the Model Router calls the model provider, the cache, the output guardrail and the trace log.
+  The router chooses the route from a value score and a cost estimate, using the mode and signals of IOperatingMode.
+  Cache & Memory and Trace Log persist through IDataAccess (see the interface table).
+endlegend
+@enduml

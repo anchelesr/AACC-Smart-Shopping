@@ -1,0 +1,88 @@
+@startuml
+title ASUC-04b - Adapt to energy conditions: act and give feedback (UC4)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor "Time\nTrigger" as TT
+participant "Event\nBus" as EB
+participant "Job\nScheduler" as JS
+participant "Policy\nEngine" as POL
+database "Data\nStore" as DB
+participant "Forecast\nWorker" as FW
+participant "Forecast Model\nAdapter" as AD
+participant "Model\nRouter" as RT
+participant "Model\nEvaluator" as ME
+actor "System\nOperator" as OP
+participant "Operator\nConsole" as OC
+participant "Telemetry" as TEL
+
+== Notification (when the mode changes) ==
+EB -> JS : modeChanged(from, to, reason)
+EB -> RT : modeChanged(from, to, reason)
+RT -> RT : drop cache entries whose lifetime class no longer matches the mode
+
+== Consumer 1: forecast refresh ==
+TT -> JS : tick()
+JS -> POL : current()
+POL --> JS : mode, concurrency, deadline window
+JS -> DB : claimDueJobs(limit = concurrency) with a lease
+DB --> JS : jobs with deadline and remaining time
+loop each claimed job
+  JS -> JS : decide(job, mode):\ndeadline reached -> RUN in any mode;\nGREEN -> RUN; AMBER -> RUN only if at most half of the window remains;\notherwise DEFER
+  alt decision = RUN
+    JS -> FW : run(job)
+    FW -> DB : readObservations(product)
+    DB --> FW : price series
+    FW -> AD : predict(series, 7 days)
+    AD --> FW : forecast
+    FW -> FW : sanity check: non-negative, within plausible bounds of recent prices
+    alt check failed or model error
+      FW --> JS : failed (the previous forecast stays visible with its age)
+    else check passed
+      FW -> DB : save forecast (model id, generatedAt, status)
+      FW --> JS : done, duration
+    end
+    JS -> JS : estimate energy and emissions:\nkWh := power * duration / 3.6e6; gCO2e := kWh * intensity at start
+  else decision = DEFER
+    JS -> DB : release the lease, set the next check before the deadline
+  end
+  JS -> DB : write the job execution log (decision, reason, mode, intensity, kWh, gCO2e)
+  JS -> TEL : decisions, deferrals, deadline overrides, forecast age
+end
+
+== Consumer 2: AI routing ==
+RT -> POL : current() (cached up to 60 s; the event only makes the change visible earlier)
+POL --> RT : operating mode and routing class
+RT -> RT : GREEN: small (local) model, escalate to the large model;\nAMBER: small model or template;\nRED: cache or template only, answer labelled "simplified"
+
+== Consumer 3: optional batches ==
+ME -> POL : current()
+POL --> ME : operating mode
+ME -> ME : model evaluation and import backfills run only in GREEN\n(at most 7 days of deferral); the mandatory daily import is never deferred
+ME -> TEL : evaluationDeferred() or evaluationFinished()
+
+== Feedback ==
+OP -> OC : open the dashboards
+OC -> TEL : getDashboards()
+TEL --> OC : mode timeline, signals, deferrals, placements, kWh, gCO2e,\nimmediate-run baseline
+OC --> OP : show the comparison
+note over JS, TEL
+  Placement of the flexible workloads follows the same mode event (sequence ASUC-04c).
+  A deadline forces an execution attempt, not a guaranteed result.
+  Lower emissions are an outcome to measure, not a property of the design (NFR-10).
+end note
+@enduml

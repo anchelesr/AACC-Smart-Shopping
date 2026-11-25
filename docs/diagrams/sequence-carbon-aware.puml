@@ -1,0 +1,40 @@
+@startuml
+title ASUC-04: Carbon-Aware Forecast Refresh with Deadline Override
+skinparam shadowing false
+skinparam backgroundColor white
+actor "Kubernetes CronJob" as Tick
+control "Carbon-Aware Controller" as Ctrl
+participant "Simulated Carbon Feed" as Carbon
+database "PostgreSQL" as DB
+control "Existing Forecast Adapter" as Worker
+participant "Prometheus Metrics" as Metrics
+Tick -> Ctrl : Start scheduled tick
+Ctrl -> DB : Claim due jobs idempotently; read deadline_at
+DB --> Ctrl : Due jobs + last forecast timestamps
+Ctrl -> Carbon : Read simulated gCO2e/kWh
+Carbon --> Ctrl : Intensity or missing signal
+loop Each due laptop
+  alt Deadline reached (priority)
+    Ctrl -> Worker : Force forecast despite intensity
+  else Intensity <= 300 gCO2e/kWh
+    Ctrl -> Worker : Forecast in low-intensity window
+  else High intensity and time remains
+    Ctrl -> DB : Persist DEFER and next check (< deadline)
+  else Signal missing
+    Ctrl -> DB : Record signal error, apply fail-safe retry
+    opt Deadline critical
+      Ctrl -> Worker : Execute
+    end
+  end
+  opt Forecast executed
+    Worker -> DB : Read validated history; upsert forecast/model/time
+    DB --> Worker : Stored / error
+  end
+  Ctrl -> Metrics : Duration, job state, kWh and estimated gCO2e
+end
+Ctrl --> Tick : Batch completion summary
+note over Ctrl,Worker
+  Deadline forces an execution attempt, not guaranteed success.
+  Measurement compared against immediate-run baseline.
+end note
+@enduml

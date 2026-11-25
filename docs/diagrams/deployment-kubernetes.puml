@@ -1,0 +1,40 @@
+@startuml
+title Smart Shopping - Proposed Kubernetes Deployment (Not Yet Running)
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+node "Shopper Browser" as Browser
+node "Kubernetes Cluster / smart-shopping namespace" {
+ node "Ingress Controller\nTLS" as Ingress
+ node "Frontend Deployment\n2 proposed replicas" as Frontend
+ node "Frontend Service" as FES
+ node "API Deployment\n2-3 proposed replicas" as API
+ node "API Service" as APIS
+ node "Price Import CronJob\nconcurrencyPolicy: Forbid" as Import
+ node "Carbon-Aware Forecast CronJob\nconcurrencyPolicy: Forbid" as Forecast
+ database "PostgreSQL 16\nStatefulSet + PVC (demo)" as DB
+ node "Prometheus and Grafana\nPrivate metrics" as Monitor
+ node "ConfigMap + Kubernetes Secrets" as Config
+}
+cloud "Approved CSV / API" as Provider
+cloud "Simulated Grid Signal" as Signal
+Browser --> Ingress : HTTPS
+Ingress --> FES
+FES --> Frontend
+Frontend --> APIS : JSON API
+APIS --> API
+API --> DB : Price and forecast queries
+Import --> Provider : Read prices
+Import --> DB : Validated upsert
+Forecast --> Signal : Read intensity
+Forecast --> DB : Due jobs and forecasts
+API ..> Monitor
+Import ..> Monitor
+Forecast ..> Monitor
+Config ..> API
+Config ..> Forecast
+note right of Forecast
+  24h deadline override is enforced by persisted state.
+  CronJob scheduling alone is not a carbon policy.
+end note
+@enduml

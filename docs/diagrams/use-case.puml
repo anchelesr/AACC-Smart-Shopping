@@ -1,0 +1,34 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam usecaseBackgroundColor #FFF5F5
+skinparam usecaseBorderColor #BE2432
+skinparam usecaseFontColor #202025
+title Smart Shopping - Overall Use Case Model
+actor Shopper
+actor "System Operator" as Operator
+actor "Kubernetes Scheduled Trigger" as Tick
+actor "Approved Price Source" as Source
+actor "Simulated Carbon Feed" as Carbon
+rectangle "Smart Shopping System" {
+  usecase "Search and Filter Laptops" as Search
+  usecase "Compare Offers / Price History" as Compare
+  usecase "View 7-Day Forecast" as Forecast
+  usecase "Get Explainable Advice" as Advice
+  usecase "Import Price Observations" as Import
+  usecase "Refresh Forecasts" as Refresh
+  usecase "Evaluate Carbon and Deadline" as Policy
+  usecase "Inspect Metrics" as Metrics
+}
+Shopper -- Search
+Shopper -- Compare
+Shopper -- Forecast
+Shopper -- Advice
+Tick -- Import
+Tick -- Refresh
+Source -- Import
+Carbon -- Policy
+Operator -- Metrics
+Refresh ..> Policy : <<include>>
+@enduml

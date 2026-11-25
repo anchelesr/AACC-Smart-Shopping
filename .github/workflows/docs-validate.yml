@@ -1,0 +1,37 @@
+name: Validate documentation
+
+on:
+  push:
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs-validate.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+
+jobs:
+  plantuml-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Download PlantUML
+        run: |
+          curl -sSL -o plantuml.jar \
+            https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar
+      - name: Check the syntax of all diagrams
+        run: |
+          status=0
+          for f in docs/diagrams/*.puml; do
+            result=$(java -jar plantuml.jar -syntax < "$f" 2>&1 | grep -v JAVA_TOOL_OPTIONS | head -1)
+            if [ "$result" = "ERROR" ]; then
+              echo "Syntax error in $f"
+              status=1
+            else
+              echo "OK  $f ($result)"
+            fi
+          done
+          exit $status

@@ -1,0 +1,68 @@
+@startuml
+title Smart Shopping - C4 Level 2: Containers (runtime units)
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 130
+skinparam nodesep 25
+skinparam ranksep 45
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 10
+skinparam rectangle {
+  BorderColor #B52330
+  BackgroundColor #FFF4F4
+  FontColor #202025
+}
+skinparam database {
+  BorderColor #202025
+  BackgroundColor #EEEEEE
+}
+skinparam LegendBackgroundColor #FAF5F5
+skinparam LegendBorderColor #B52330
+top to bottom direction
+
+actor Shopper
+actor Operator
+
+rectangle "Smart Shopping" {
+  rectangle "Web Frontend\n[container]\nShopper Client, Operator Console" as FE
+  rectangle "Backend\n[container, modular]\nShopping API, Assistant Service,\nLLM Gateway, Policy admin,\nWatch Monitor (watchlist)" as BE
+  rectangle "Controllers\n[CronJobs]\nEnergy Monitor + Policy Engine,\nJob Scheduler, Price Importer,\nWatch Monitor (price check)" as CTL
+  rectangle "Placement Controller\n[container]" as PC
+  rectangle "Forecast Workers and Evaluation\n[Jobs]\nForecast Worker, Model Evaluator,\nForecast Model Adapter" as WK
+  rectangle "Local Model Runtime\n[container]\nsmall open-weight model" as LM
+  rectangle "Event Bus\n[Kafka]\nprice.changed, mode.changed, events.dead" as EB
+  database "Database\n[PostgreSQL]\nprices, forecasts, watches, alerts,\npolicy, mode, jobs, traces" as DB
+  rectangle "Monitoring\n[Prometheus, Grafana, OpenTelemetry]" as MON
+}
+
+rectangle "Price Data Provider" as SRC #FFFFFF
+rectangle "Energy Signal Provider" as ESP #FFFFFF
+rectangle "LLM Provider" as LLM #FFFFFF
+rectangle "Kubernetes API" as K8S #FFFFFF
+
+Shopper --> FE : HTTPS
+Operator --> FE : HTTPS
+FE --> BE : REST (IShoppingAPI,\nIAssistantAPI, IPolicyAdmin)
+BE --> DB : SQL
+BE --> LM : small model
+BE --> LLM : large model
+BE --> EB : subscribe mode.changed
+CTL --> DB : SQL
+CTL --> SRC : fetch batches
+CTL --> ESP : read signals
+CTL --> EB : publish, subscribe
+CTL --> WK : create Jobs
+WK --> DB : SQL
+PC --> EB : subscribe mode.changed
+PC --> K8S : taints
+PC ..> WK : steers placement
+PC ..> LM : steers placement
+BE ..> MON : metrics, traces
+CTL ..> MON
+WK ..> MON
+
+legend bottom
+  C4 container view of the logical components. The mapping of components to containers is in docs/architecture.md;
+  Kubernetes resource types, node pools and replicas are in deployment-kubernetes.puml.
+endlegend
+@enduml

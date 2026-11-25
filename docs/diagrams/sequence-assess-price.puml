@@ -1,0 +1,85 @@
+@startuml
+title ASUC-01 - Assess a laptop's price and get advice (UC2)
+autonumber "<b>00"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam dpi 140
+skinparam maxMessageSize 170
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #999999
+  ParticipantBackgroundColor #FFF4F4
+  ParticipantBorderColor #B52330
+  ActorBackgroundColor #EEEEEE
+  ActorBorderColor #202025
+  GroupBorderColor #B52330
+}
+skinparam NoteBackgroundColor #FAF5F5
+skinparam NoteBorderColor #B52330
+
+actor Shopper
+participant "Shopper\nClient" as UI
+participant "Shopping\nAPI" as API
+participant "Catalog\nQuery" as CAT
+participant "Price\nEvidence" as EV
+participant "Advice\nEngine" as ADV
+participant "Forecast\nService" as FC
+database "Data\nStore" as DB
+participant "Telemetry" as TEL
+
+Shopper -> UI : open laptop details
+UI -> API : getInsights(productId, optional constraints:\nbudget, preferred brands)
+activate API
+API -> EV : getEvidence(productId)
+activate EV
+EV -> DB : readCurrentOffers(productId)
+DB --> EV : offers (retailer, price, currency, observedAt)
+EV -> DB : readObservations(productId, last 30 days)
+DB --> EV : observations
+EV -> EV : derive the daily lowest valid offer\n(comparable currency only)
+EV -> EV : reference := median(daily lowest offers)\ndelta := current price / reference - 1
+alt fewer than the minimum observation days, or no valid current offer
+  EV -> EV : mark evidence INSUFFICIENT_DATA
+end
+EV --> API : evidence (offers, history, reference, delta, sufficiency)
+deactivate EV
+API -> ADV : advise(productId, evidence)
+activate ADV
+ADV -> FC : getLatest(productId)
+activate FC
+FC -> DB : readLatestForecast(productId)
+DB --> FC : forecast run, or none
+FC -> FC : forecast age := now - generatedAt\ncompare with the freshness limit
+FC --> ADV : forecast and status FRESH | STALE | MISSING
+deactivate FC
+ADV -> ADV : apply advice rules(delta, forecast trend, forecast status)
+alt evidence is INSUFFICIENT_DATA
+  ADV -> ADV : action := INSUFFICIENT_EVIDENCE
+else forecast is FRESH
+  ADV -> ADV : action := BUY_NOW | WAIT | INSUFFICIENT_EVIDENCE\nfrom delta and forecast trend
+else forecast is STALE or MISSING
+  ADV -> ADV : decide from delta only\nadd the caveat "no fresh forecast"
+end
+ADV -> ADV : apply the constraints: the best offer against the budget,\nthe brand against the preferences; BUY_NOW is withheld (WAIT) above the budget
+ADV --> API : advice (action, reasons, caveats, within budget, needs alternatives)
+deactivate ADV
+opt the advice says that the budget or a brand preference is not met
+  API -> CAT : findAlternatives(constraints, excluding productId)
+  activate CAT
+  CAT -> DB : readLowestCurrentOffers(other laptops)
+  DB --> CAT : offers
+  CAT -> CAT : keep laptops within the budget and the preferred brands,\nrank by price, at most three
+  CAT --> API : alternatives or none
+  deactivate CAT
+end
+API -> API : assemble Past, Present and Future\nwith timestamps, sources, freshness and alternatives
+API -> TEL : recordRequest(latency, evidence state, forecast status)
+API --> UI : insights
+deactivate API
+UI --> Shopper : show history, offers, forecast, advice and caveats
+
+note over API, FC
+  No forecast is calculated during this request.
+  The stored forecast is read and labelled with its age (ADR-006).
+end note
+@enduml
