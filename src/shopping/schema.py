@@ -59,6 +59,11 @@ CREATE TABLE IF NOT EXISTS review_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, t
                                          question TEXT, answer TEXT, reason TEXT, decision TEXT, decided_at TEXT);
 CREATE TABLE IF NOT EXISTS token_budget (day TEXT PRIMARY KEY, tokens_used INTEGER NOT NULL DEFAULT 0, large_used INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS ops_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, actor TEXT, action TEXT, detail TEXT);
+CREATE TABLE IF NOT EXISTS market_scan_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_at TEXT NOT NULL, mode TEXT, feeds INTEGER NOT NULL, failed INTEGER NOT NULL,
+                                             headlines INTEGER NOT NULL, signals INTEGER NOT NULL, outcome TEXT NOT NULL, detail TEXT);
+CREATE TABLE IF NOT EXISTS market_signals (id INTEGER PRIMARY KEY AUTOINCREMENT, computed_at TEXT NOT NULL, topic TEXT NOT NULL, label TEXT, categories TEXT,
+                                           mentions INTEGER NOT NULL, sources INTEGER NOT NULL, window_days INTEGER NOT NULL, active INTEGER NOT NULL, samples TEXT);
+CREATE TABLE IF NOT EXISTS market_events (id INTEGER PRIMARY KEY AUTOINCREMENT, topic TEXT NOT NULL, category TEXT, note TEXT, valid_until TEXT NOT NULL, set_by TEXT, set_at TEXT NOT NULL);
 """
 
 

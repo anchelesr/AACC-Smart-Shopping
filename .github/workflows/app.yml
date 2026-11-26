@@ -1,0 +1,37 @@
+name: Application tests
+
+# Reusable: called by ci-cd.yml (so that tests run once per change); can also be started by hand.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Unit and API tests on SQLite and PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: shopping_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test -d shopping_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      SHOPPING_TEST_POSTGRES: postgresql://test:test@localhost:5432/shopping_test      # the tests recreate this schema: use a throw-away database only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pyyaml prometheus-client==0.26.0
+      - run: python -m pytest -q -m "not integration"
+      - name: Smoke test of the running application
+        run: |
+          PYTHONPATH=src python -m shopping --demo --port 8099 &
+          for _ in $(seq 1 20); do curl -sf localhost:8099/health/ready && break; sleep 1; done
+          curl -sf localhost:8099/products | python -c "import json,sys; assert len(json.load(sys.stdin)) == 6"
+          curl -sf localhost:8099/products/lap-001/insights | python -c "import json,sys; d=json.load(sys.stdin); assert d['recommendation']['action'] in ('BUY_NOW','WAIT','INSUFFICIENT_EVIDENCE')"

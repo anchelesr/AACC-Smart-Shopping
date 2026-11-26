@@ -100,6 +100,10 @@ These differences are decisions taken during implementation or limits of the dem
 | 22 | Observability stack with Prometheus, Grafana, OpenTelemetry | Prometheus, alert rules and Grafana are configured; there is still no OpenTelemetry or trace export, and Kepler is not used | Energy values stay estimates (decision of the authors: estimates, clearly labelled) |
 
 
+## Optional extension: market signals
+
+See `docs/market-signals.md`. Off by default (`SHOPPING_MARKET_SCAN=on` enables it); six topics, matched in headlines (tags, description and hashtags only confirm); it does not change the forecast or the recommendation; tested without network only, never run against real feeds.
+
 ## Known limits
 
 - The data is synthetic (`seed.py`: seeded random walks with one planned dip and one planned rise). On such data the baseline is expected to be hard to beat, and the backtest on the six laptops of the seed showed exactly that (see ADR-008). This says nothing about real prices.

@@ -28,6 +28,8 @@ RETRY_BACKOFF = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 EVALUATION_INTERVAL = timedelta(days=1)
 MAX_OPTIONAL_DEFERRAL = timedelta(days=7)
+MARKET_INTERVAL = timedelta(hours=6)
+MAX_MARKET_DEFERRAL = timedelta(hours=24)
 
 
 def _dt(ts: str) -> datetime:
@@ -39,7 +41,8 @@ class Scheduler(JobScheduler):
     def __init__(self, db, worker: ForecastWorker, evaluator: ModelEvaluator, policy_source: Callable[[], Policy], mode_reader,
                  signals: Callable[[], dict], metrics: Optional[Metrics] = None,
                  clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
-                 timer: Callable[[], float] = time.perf_counter, assumed_duration_s: Optional[float] = None, immediate: bool = False) -> None:
+                 timer: Callable[[], float] = time.perf_counter, assumed_duration_s: Optional[float] = None, immediate: bool = False,
+                 market=None, market_interval: timedelta = MARKET_INTERVAL) -> None:
         super().__init__(db)
         # assumed_duration_s: the demonstration jobs take milliseconds; with a value set, the energy estimate uses it instead of the
         #   measured time (an ASSUMPTION that stands for a production-size job, see docs/carbon-experiment.md)
@@ -48,6 +51,7 @@ class Scheduler(JobScheduler):
         self.worker, self.evaluator, self.policy_source, self.mode_reader, self.signals = worker, evaluator, policy_source, mode_reader, signals
         self.metrics = metrics if metrics is not None else Metrics()
         self.clock, self.timer = clock, timer
+        self.market, self.market_interval = market, market_interval            # optional news scanner (docs/market-signals.md)
 
     # ---- creation: the deadline is fixed when the job is created
     def enqueue_or_keep(self, laptop_id: str) -> bool:
@@ -111,6 +115,8 @@ class Scheduler(JobScheduler):
                 capacity -= 1
             self._run(job, mode, target, reason, now, out)
         out["optional"] = self.run_optional(now, mode)
+        if self.market is not None:
+            out["market"] = self.run_market(now, mode, target)
         return out
 
     def _run(self, job: dict, mode: str, target: str, reason: str, now: datetime, out: dict) -> None:
@@ -146,7 +152,7 @@ class Scheduler(JobScheduler):
         return bool(cur.rowcount)
 
     def _log(self, job_id, laptop, now, decision, reason, mode, intensity=None, kwh=None, gco2e=None, duration=None, outcome=None) -> None:
-        if decision in ("defer", "defer_optional"):                    # a repeated identical deferral is counted in metrics, not logged again
+        if decision in ("defer", "defer_optional", "defer_market"):                    # a repeated identical deferral is counted in metrics, not logged again
             last = self.db.execute("SELECT decision, reason, mode FROM job_log WHERE laptop_id=? ORDER BY id DESC LIMIT 1", (laptop,)).fetchone()
             if last is not None and tuple(last) == (decision, reason, mode):
                 return
@@ -168,6 +174,28 @@ class Scheduler(JobScheduler):
             return {"action": "deferred", "mode": mode}
         report = self.evaluator.evaluate(now)
         self._log(None, "model-evaluation", now, "run_optional", "mode GREEN" if mode == "GREEN" else "maximum deferral of 7 days reached", mode)
+        return {"action": "ran", "report": report}
+
+    def run_market(self, now: datetime, mode: str, target: str) -> dict:
+        """News scan: runs in GREEN; in AMBER and RED it waits, but never longer than 24 h. Energy is ESTIMATED like for jobs."""
+        last = self.db.execute("SELECT MAX(run_at) FROM market_scan_runs").fetchone()[0]
+        if last and now - _dt(last) < self.market_interval:
+            return {"action": "not_due"}
+        first_wait = self.db.execute("SELECT MIN(decided_at) FROM job_log WHERE laptop_id='market-scan' AND decision='defer_market' AND decided_at > ?", (last or "",)).fetchone()[0]
+        overdue = bool(first_wait) and now - _dt(first_wait) >= MAX_MARKET_DEFERRAL
+        if mode != "GREEN" and not overdue:
+            self._log(None, "market-scan", now, "defer_market", f"deferred in {mode}", mode)
+            self.metrics["market_deferred"] += 1
+            return {"action": "deferred", "mode": mode}
+        started = self.timer()
+        report = self.market.scan(now, mode)
+        duration = self.timer() - started
+        sig = self.signals()
+        kwh = POWER_W.get(target, POWER_W["standard"]) * duration / 3_600_000
+        gco2e = kwh * sig["intensity"] if sig.get("intensity") is not None else None
+        self._log(None, "market-scan", now, "run_market", "mode GREEN" if mode == "GREEN" else "maximum deferral of 24 h reached", mode,
+                  sig.get("intensity"), kwh, gco2e, duration, report["outcome"])
+        self.metrics["market_runs"] += 1
         return {"action": "ran", "report": report}
 
     def log(self, limit: int = 50) -> list[dict]:

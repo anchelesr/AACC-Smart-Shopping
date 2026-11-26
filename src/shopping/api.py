@@ -12,10 +12,13 @@ import mimetypes
 import re
 import time
 from dataclasses import asdict, fields
+from datetime import timedelta
 from pathlib import Path
 from typing import Callable
 from urllib.parse import parse_qs
 
+from .energy import iso
+from .market import NOTICE, current_signals
 from .policy import Policy, PolicyError, audit as write_audit
 from .service import Application, NotFound
 
@@ -207,6 +210,27 @@ def make_wsgi(app: Application) -> Callable:
         if kind not in ("daily", "backfill"):
             raise HttpError(400, "kind must be daily or backfill")
         return app.imports.run(r.raw(MAX_IMPORT_BODY).decode("utf-8", "replace"), fmt, r.query.get("source", "upload")[:64], kind)
+
+    @route("GET", "/ops/market", ops=True)
+    def market(r):
+        runs = [dict(zip(("run_at", "mode", "feeds", "failed", "headlines", "signals", "outcome", "detail"), x)) for x in app.db.execute(
+            "SELECT run_at, mode, feeds, failed, headlines, signals, outcome, detail FROM market_scan_runs ORDER BY id DESC LIMIT 10")]
+        return {"enabled": app.market is not None, "feeds": list(app.market.feeds) if app.market else [], "runs": runs,
+                "signals": current_signals(app.db, app.clock()), "notice": NOTICE}
+
+    @route("POST", "/ops/market-events", ops=True)
+    def market_event(r):
+        b = r.json()
+        topic, category, note = str(b.get("topic", "")).strip(), str(b.get("category", "all")).strip() or "all", str(b.get("note", "")).strip()
+        days = _num(b.get("valid_days", 7), "valid_days")
+        if not 1 <= len(topic) <= 80 or len(category) > 40 or len(note) > 300 or days is None or not 0 < days <= 90:
+            raise HttpError(400, "topic 1-80 characters, category up to 40, note up to 300, valid_days 1-90")
+        now = app.clock()
+        with app.lock, app.db:
+            app.db.execute("INSERT INTO market_events (topic, category, note, valid_until, set_by, set_at) VALUES (?, ?, ?, ?, 'operator', ?)",
+                           (topic, category, note, iso(now + timedelta(days=days)), iso(now)))
+            write_audit(app.db, "operator", "market.event", json.dumps({"topic": topic, "category": category, "valid_days": days}), now)
+        return {"stored": True, "signals": current_signals(app.db, now)}
 
     @route("GET", "/ops/review-queue", ops=True)
     def review(r):

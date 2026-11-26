@@ -148,6 +148,19 @@ def render(app, http: Optional[Histogram] = None) -> str:
         x.add("shopping_model_worse_streak", "gauge", "Consecutive live checks in which the active model was worse than the baseline.",
               [({"model": r[0]}, r[1]) for r in rows("SELECT model_id, worse_streak FROM model_registry")])
 
+        # ---- market signals (news scan; empty when the scan is off)
+        x.add("shopping_market_scan_runs_total", "counter", "News scan runs by outcome.", [({"outcome": r[0]}, r[1]) for r in rows("SELECT outcome, COUNT(*) FROM market_scan_runs GROUP BY outcome")])
+        m = one("SELECT COALESCE(SUM(failed),0) FROM market_scan_runs")
+        x.add("shopping_market_source_errors_total", "counter", "Feed fetch or parse errors in news scans.", [({}, m[0])])
+        lastrun = one("SELECT headlines, signals FROM market_scan_runs WHERE outcome IN ('ok','partial') ORDER BY id DESC LIMIT 1")
+        x.add("shopping_market_headlines_scanned", "gauge", "Distinct headlines in the newest successful scan.", [({}, lastrun[0] if lastrun else 0)])
+        x.add("shopping_market_active_signals", "gauge", "Topics that met the signal threshold in the newest successful scan.", [({}, lastrun[1] if lastrun else 0)])
+        okat = one("SELECT MAX(run_at) FROM market_scan_runs WHERE outcome IN ('ok','partial')")[0]
+        if okat:
+            x.add("shopping_market_last_success_age_seconds", "gauge", "Age of the newest successful news scan.", [({}, _age(okat, now))])
+        x.add("shopping_market_estimated_energy_kwh_total", "counter", "ESTIMATED energy of news scans (configured power x measured duration).",
+              [({}, one("SELECT COALESCE(SUM(kwh),0) FROM job_log WHERE decision='run_market'")[0])])
+
         # ---- assistant (LLM gateway)
         x.add("shopping_router_decisions_total", "counter", "Assistant router decisions by route and mode.",
               [({"route": r[0] or "none", "mode": r[1] or "none"}, r[2]) for r in rows("SELECT route, mode, COUNT(*) FROM traces GROUP BY route, mode")])

@@ -203,6 +203,7 @@ Source of requirements R1–R7: the Teams assignment "Final Project submission".
 - [ ] **T033** Persistent Prometheus storage, PostgreSQL backup, Grafana login (M).
 - [ ] **T034** Test Electricity Maps adapter with a real token (S).
 - [ ] **T035** Argo CD / GitOps pull as described in ADR-009, CronJobs for scheduler (L).
+- [ ] **T036** Market signals from public news (optional extension, `docs/market-signals.md`). Status VERIFY: implemented and unit-tested without network (51 market tests; 255 passed on SQLite, 348 on PostgreSQL); six topics, titles plus feed tags, description and hashtags; never run against the real feeds. Remaining: run once with `SHOPPING_MARKET_SCAN=on` on a machine with internet and check `/ops/market`; check feed licences and the BBC and NPR 1019 URLs; authors review the six-topic dictionary and the rule that tags/description only confirm; add `SHOPPING_MARKET_SCAN` to the deployment only after the cluster has internet access (S).
 
 ## 9. Testing and Validation
 

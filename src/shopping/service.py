@@ -20,6 +20,7 @@ from .db import open_database
 from .energy import CarbonMonitor, ControlledFeed, EnergyFeed, SimulatedFeed, age_minutes, iso
 from .forecast import FORECAST_MAX_AGE, ForecastWorker, ModelEvaluator, ModelRegistry, daily_series, evidence_for, forecast_for
 from .importer import ImportService
+from .market import DEFAULT_FEEDS, NOTICE, MarketScanner, current_signals, load_topics
 from .metrics import Histogram
 from .llm.gateway import LlmGateway
 from .llm.providers import LlmProvider, ModelByMode, OpenAICompatibleProvider, StandInLocalModel
@@ -85,7 +86,7 @@ class ShoppingService:
                 "past": {"reference_30d": ref, "reference_method": "median_of_daily_lowest_valid_offer", "observation_days": len(series),
                          "sufficient": ev.sufficient, "discount_delta_pct": None if ev.delta is None else round(ev.delta * 100, 2),
                          "history": [{"date": d.isoformat(), "price": p} for d, p in series]},
-                "future": fc_detail, "recommendation": rec, "generated_at": iso(now)}
+                "future": fc_detail, "recommendation": rec, "market": {"signals": current_signals(self.db, now), "notice": NOTICE}, "generated_at": iso(now)}
 
     def compare(self, ids: list[str]) -> list[dict]:
         if not 2 <= len(ids) <= 3:
@@ -116,7 +117,7 @@ class Application:
     def __init__(self, db_url: str = "sqlite://:memory:", bus: Optional[EventBus] = None, clock: Optional[Callable[[], datetime]] = None,
                  feed: Optional[EnergyFeed] = None, cluster: Optional[Cluster] = None, small: Optional[LlmProvider] = None,
                  large: Optional[LlmProvider] = None, ops_token: Optional[str] = None, feed_kind: str = "simulated",
-                 initial_policy: Optional[Policy] = None, mode_cache_seconds: float = 60.0) -> None:
+                 initial_policy: Optional[Policy] = None, mode_cache_seconds: float = 60.0, market: Optional[MarketScanner] = None) -> None:
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.lock = threading.RLock()
         self.db = open_database(db_url)
@@ -135,9 +136,12 @@ class Application:
         self.registry = ModelRegistry(self.db)
         self.worker = ForecastWorker(self.db, self.registry)
         self.evaluator = ModelEvaluator(self.db, self.registry)
+        self.market = market or self._default_market()
         self.scheduler = Scheduler(self.db, self.worker, self.evaluator, lambda: self.policy_store.current()[1], self.mode_reader,
                                    self.monitor.latest, self.metrics, self.clock,
-                                   assumed_duration_s=float(os.environ["SHOPPING_JOB_ASSUMED_SECONDS"]) if os.environ.get("SHOPPING_JOB_ASSUMED_SECONDS") else None)
+                                   assumed_duration_s=float(os.environ["SHOPPING_JOB_ASSUMED_SECONDS"]) if os.environ.get("SHOPPING_JOB_ASSUMED_SECONDS") else None,
+                                   market=self.market, **({"market_interval": timedelta(hours=float(os.environ["SHOPPING_MARKET_INTERVAL_HOURS"]))}
+                                                          if os.environ.get("SHOPPING_MARKET_INTERVAL_HOURS") else {}))
         self.cluster = cluster or self._default_cluster()
         self.placement = PlacementController(self.db, self.cluster, lambda: self.policy_store.current()[1], self.metrics, self.clock)
         self.imports = ImportService(self.db, self.bus, self.metrics, self.mode_reader, self.clock)
@@ -146,6 +150,13 @@ class Application:
         self.gateway = LlmGateway(self.db, small or self._default_small(self.mode_reader), large or self._default_large(), self.mode_reader, self.monitor.latest, self.metrics, clock=self.clock)
         self._price_c = self.bus.subscribe(TOPIC_PRICE, "job-scheduler")
         self._mode_c = self.bus.subscribe(TOPIC_MODE, "app-mode-cache")
+
+    def _default_market(self) -> Optional[MarketScanner]:
+        """Off unless SHOPPING_MARKET_SCAN=on (the scan needs outbound https). Feeds: SHOPPING_NEWS_FEEDS (comma separated) or the defaults."""
+        if os.environ.get("SHOPPING_MARKET_SCAN", "off").lower() != "on":
+            return None
+        feeds = [f.strip() for f in os.environ.get("SHOPPING_NEWS_FEEDS", "").split(",") if f.strip()] or list(DEFAULT_FEEDS)
+        return MarketScanner(self.db, feeds, load_topics(os.environ.get("SHOPPING_MARKET_TOPICS_FILE")))
 
     @staticmethod
     def _default_cluster() -> Cluster:

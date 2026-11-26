@@ -88,6 +88,11 @@ async function viewDetail(id) {
         (r.alternatives || []).length ? h("div", {}, h("h3", {}, "Alternatives"), r.alternatives.map((a) => h("div", {}, `${a.brand} ${a.model}: ${eur(a.price)} at ${a.retailer}`))) : ""),
       h("div", { class: "card" }, h("h3", {}, "Past 30 days"), chart(d.past.history),
         h("div", { class: "muted" }, `Reference (median of daily lowest offers): ${eur(d.past.reference_30d)} over ${d.past.observation_days} days; ` + (d.past.discount_delta_pct === null ? "not enough days for a delta." : `current price ${d.past.discount_delta_pct} % vs reference.`))),
+      (d.market && d.market.signals.length) ? h("div", { class: "card" }, h("h3", {}, "Market context"),
+        d.market.signals.map((m) => h("div", {}, m.origin === "news"
+          ? [`${m.label}: ${m.mentions} headlines from ${m.sources} sources in ${m.window_days} days. `, (m.examples || []).slice(0, 2).map((e) => e.link ? h("a", { href: e.link, rel: "noopener noreferrer", target: "_blank" }, e.title + " ") : e.title + " ")]
+          : `${m.label} (${m.categories.join(", ")}): ${m.note || "operator note"}, until ${m.valid_until}.`)),
+        h("div", { class: "muted" }, d.market.notice)) : "",
       h("div", { class: "card" }, h("h3", {}, "Next 7 days"), f.status === "MISSING" ? "No forecast yet." : h("div", {}, `Model ${f.model_id}, ${f.status}, generated ${f.generated_at}. Day 7: ${eur(f.prices[f.prices.length - 1])}.`), h("div", { class: "muted" }, f.caveat || "")),
       h("div", { class: "card" }, h("h3", {}, "Price watch"), h("div", { class: "row" }, target,
         h("button", { onclick: guard(async () => { await api("PUT", `/watches/${encodeURIComponent(id)}`, { targetPrice: Number(target.value) }); alert("Watch saved."); }) }, "Watch"))));
